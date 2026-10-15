@@ -1,0 +1,10 @@
+{
+  "name": "@noderunner/graph",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The FalkorDB adapter and every Cypher query",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

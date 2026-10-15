@@ -1,0 +1,10 @@
+{
+  "name": "@noderunner/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Run API, job queue, agent loop, composition root",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}
