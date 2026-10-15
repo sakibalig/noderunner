@@ -6,5 +6,18 @@
   "description": "Run API, job queue, agent loop, composition root",
   "exports": {
     ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "2.1.5",
+    "@noderunner/core": "workspace:*",
+    "hono": "4.13.13",
+    "p-queue": "10.0.0",
+    "pino": "10.4.0",
+    "ulid": "3.0.2",
+    "zod": "4.6.7"
+  },
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "tsx src/main.ts"
   }
 }
