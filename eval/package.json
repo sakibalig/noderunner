@@ -1,0 +1,10 @@
+{
+  "name": "@noderunner/eval",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Labels, baseline runs, the runner, and results",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

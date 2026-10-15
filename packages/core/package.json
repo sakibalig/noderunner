@@ -1,0 +1,10 @@
+{
+  "name": "@noderunner/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The contract every package depends on: types, zod schemas, ports, events",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

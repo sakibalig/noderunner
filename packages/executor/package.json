@@ -1,0 +1,10 @@
+{
+  "name": "@noderunner/executor",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Lockfile regeneration, verification, and the pull request",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

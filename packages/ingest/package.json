@@ -1,0 +1,10 @@
+{
+  "name": "@noderunner/ingest",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The six ingestion stages",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}
