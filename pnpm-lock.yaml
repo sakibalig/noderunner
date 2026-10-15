@@ -79,7 +79,20 @@ importers:
         specifier: 4.6.7
         version: 4.6.7
 
-  packages/ingest: {}
+  packages/ingest:
+    dependencies:
+      '@noderunner/core':
+        specifier: workspace:*
+        version: link:../core
+      '@noderunner/graph':
+        specifier: workspace:*
+        version: link:../graph
+      ignore:
+        specifier: 7.0.12
+        version: 7.0.12
+      zod:
+        specifier: 4.6.7
+        version: 4.6.7
 
   packages/mcp: {}
 
@@ -552,6 +565,10 @@ packages:
   hono@4.13.13:
     resolution: {integrity: sha512-CQ46U0ZkAGmbT/4UxdzzGJpacP2IeKgY4a5/tOI9AABbpOMfK739wfDXmv1usCk+3RkKj1hQy4/fjhiwa2xlrA==}
     engines: {node: '>=16.9.0'}
+
+  ignore@7.0.12:
+    resolution: {integrity: sha512-/8UvqAPU9DGTI9k4mxtf49U37Isfwr8Uts96+SBHIkFxPJnHS0Ew4f00sM4Scd8V8EjM0jUNtVDdv1kPdt35lg==}
+    engines: {node: '>= 4'}
 
   jsbi@4.3.2:
     resolution: {integrity: sha512-9fqMSQbhJykSeii05nxKl4m6Eqn2P6rOlYiS+C5Dr/HPIU/7yZxu5qzbs40tgaFORiw2Amd0mirjxatXYMkIew==}
@@ -1138,6 +1155,8 @@ snapshots:
   generic-pool@3.9.0: {}
 
   hono@4.13.13: {}
+
+  ignore@7.0.12: {}
 
   jsbi@4.3.2: {}
 

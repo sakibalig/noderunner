@@ -177,15 +177,19 @@ MERGE (x)-[:ABOUT]->(v)
 `advisories.at` then `MERGE`s `(x)-[a:AT]->(i)` for each affected install and sets `a.snapshot_sha = $sha`. A `planned` or `waived` finding keeps its
 status; a `fixed` one that reappears is reopened.
 
-**5. People (T08, Sakib).** CODEOWNERS lines become `(pattern, owners[])`; a path's owners come from the last rule
-whose pattern matches it under the `ignore` package's gitignore semantics. `@org/team` becomes one `Person` with
-`kind: "team"`, `@user` one with `kind: "user"`, and an e-mail owner is dropped with a `people` warning. History comes
-from `forge.history(repo, sha, 200)`, whose adapter runs `git clone --filter=blob:none --depth=200 --no-checkout
---single-branch` in a temporary folder it deletes in `finally`, and pairs `git log --name-only` with the GitHub
-commit list to name each author by login. Commits with no login, and bots (`[bot]`, Dependabot, Renovate), are
-dropped. `CHANGED {commits, last_at}` counts commits per author per file. When the stage succeeds it replaces every
-`OWNS` and `CHANGED` edge, since neither carries `snapshot_sha`; when git, the network, or the parse fails it is
-skipped with a `people` warning and the previous edges stay.
+**5. People (T08, Sakib).** `src/stages/people.ts`, with the parser in `src/parse/codeowners.ts`. CODEOWNERS lines
+become `(pattern, owners[])`; a path's owners come from the last rule whose pattern matches it under the `ignore`
+package's gitignore semantics, and a last match with no owners leaves the path unowned. `@org/team` becomes one
+`Person` with `kind: "team"`, `@user` one with `kind: "user"`, handles are lowercased, and an e-mail owner is dropped
+with a `people` warning. History comes from `forge.history(repo, sha, 200)`. Its adapter, `src/adapters/history.ts`,
+fetches the commit with `git fetch --filter=blob:none --depth=201` into a temporary folder it deletes in `finally`,
+so no file contents are downloaded, drops the deepest commit, which git records as the shallow boundary and would
+otherwise list every file in the repository, and takes each author's login from the GitHub commit list. Commits with
+no login, and bots (`[bot]`, Dependabot, Renovate, GitHub Actions), are dropped. `CHANGED {commits, last_at}` counts
+commits per author per file. The two halves are independent: every `OWNS` edge is replaced from CODEOWNERS on every
+run, while `CHANGED` edges are replaced only when history succeeds; when git or GitHub fails, the stage returns one
+`people` warning and the previous `CHANGED` edges stay. Edges only reach existing `File` nodes, so stage 5 runs after
+stage 3.
 
 **6. Prune and stamp (T19).** Run only after stages 1 to 4 succeed, as separate constants in this order. Deletes
 are bounded with `WITH … LIMIT 5000` and repeated until a run returns 0. Change C6 adds `DECLARES` and `AFFECTS`,
