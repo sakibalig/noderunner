@@ -98,7 +98,8 @@ current requirement. Every slice fixes each field of this inventory, and an unre
 ## 3. Make the smallest complete change
 
 Deliver the whole cohesive slice — a port and the use case that consumes it land together — but stay within the
-requested task and preserve unrelated work. Keep policy in `core`, queries in `packages/graph`, and vendor calls in
+requested task and preserve unrelated work. Never commit to `main`: start every change on a new branch cut from an
+up-to-date `main`, and merge it through a pull request. Keep policy in `core`, queries in `packages/graph`, and vendor calls in
 adapters. Add no speculative feature or future-facing scaffolding; the delivery plan's cut order decides what is
 built, and anything past the current day's exit condition waits. Write a comment only where the code is genuinely
 non-obvious.

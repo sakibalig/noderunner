@@ -11,6 +11,7 @@ sequence lives in the [delivery plan](plan.md).
 | [standards/engineering.md](standards/engineering.md) | The bar the code is built to |
 | [standards/review.md](standards/review.md) | The review a change is judged against before it merges |
 | [plan.md](plan.md) | Tasks, owners, cut order, decisions, risks, and the reconciliation record |
+| [tracks/sakib.md](tracks/sakib.md) | Sakib's stage-by-stage working plan, hand-offs with Shaukat, and cut order |
 
 The root [AGENTS.md](../../AGENTS.md) is the entry point every contributor and coding agent reads first. New pages
 are added here — the blog post draft, the demo script, the eval results — as each becomes stable.

@@ -160,7 +160,8 @@ If a day's exit condition is missed at the evening call, cut the next morning in
 
 - Two 10-minute calls a day, at 10:00 and 18:00 IST: done, next, blocked. The evening call checks the day's exit.
 - `packages/core` and anything under `contracts/` change only with the other owner's review.
-- One short-lived branch per task (`t12-reachability`), merged into `main` within the day; push at checkpoints.
+- No direct commits to `main`: branch from an up-to-date `main` per task (`t12-reachability`), push the branch,
+  and merge through a pull request within the day.
 - Definition of done: the task's tests pass with `pnpm test`, `pnpm check` is clean, any new Cypher is in
   `packages/graph/src/cypher`, and the other owner is told at the next call.
 
