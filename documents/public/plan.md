@@ -17,8 +17,8 @@ planStatus:
 
 Status: **design documented, implementation not started.** Graph Hacks runs from Oct 15, 12:01 AM to Oct 18,
 11:59 PM IST; the team submits by **6:00 PM IST on Oct 18** and keeps the last hours for upload and form failures.
-This plan fixes sequence only. Behaviour lives in [architecture.md](../../documents/public/architecture.md), the
-[component designs](../../documents/public/components), and the [contracts](../../contracts).
+This plan fixes sequence only. Behaviour lives in [architecture.md](./architecture.md), the
+[component designs](./components), and the [contracts](../../contracts).
 
 ## 1. Outcome, scope and non-goals
 
@@ -29,7 +29,7 @@ across sessions, and shows the graph path behind every claim — plus a three-mi
 **Never cut:** the tier query, the evidence highlight, the funnel, and the video.
 
 **Not claimed:** function-level reachability, exploitability, any ecosystem other than npm lockfile v2 or v3, and
-private repositories. See [Known gaps](../../documents/public/architecture.md#15-known-gaps).
+private repositories. See [Known gaps](./architecture.md#15-known-gaps).
 
 ## 2. Sources
 
@@ -49,7 +49,7 @@ ones marked *proposed* wait on the other owner's agreement (section 8).
 
 | # | LLD said | This repository does | Why |
 | --- | --- | --- | --- |
-| C1 | `packages/shared` | `packages/core` | "shared" is a filler name under the [naming rule](../../documents/public/standards/engineering.md#naming); `core` names its role as the contract every package depends on |
+| C1 | `packages/shared` | `packages/core` | "shared" is a filler name under the [naming rule](./standards/engineering.md#naming); `core` names its role as the contract every package depends on |
 | C2 | `recall_decisions` runs once, first | It runs again after `reachability` | The "now reachable" staleness rule reads `Finding.tier`, which `reachability` sets, so a single first call lags one run behind. *Proposed* (D8) |
 | C3 | `open_pull_request` only in the fixer's tool set | The UI's `POST /plans/:id/ship` also calls it, in a `ui` run | The fixer is first in the cut order; without it nothing could open the pull request. *Proposed* (D9) |
 | C4 | Evidence nodes carry the FalkorDB id only | Evidence nodes also carry the node's stable `key`; `subgraph` takes keys | Internal ids can be reused after a prune, so a stored id can point at the wrong node. *Proposed* (D10) |

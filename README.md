@@ -13,7 +13,7 @@ Built by Team Noderunner (Shaukat Ali, Sakib Khan) for Graph Hacks by WeMakeDevs
 Act on Connected Data, Oct 15–18, 2026.
 
 > **Status: design documented, implementation starting.** The commands below describe the intended interface and
-> do not run yet. See the [delivery plan](nimbalyst-local/plans/noderunner.md) for progress.
+> do not run yet. See the [delivery plan](documents/public/plan.md) for progress.
 
 ---
 
@@ -100,7 +100,7 @@ Then ask "which of my alerts are actually reachable?".
 | [AGENTS.md](AGENTS.md) | Mandatory rules for every contributor and coding agent; start here |
 | [documents/public](documents/public) | The architecture, the component designs, and the engineering and review standards |
 | [contracts](contracts) | The graph schema, the tools, the worker API, and the event stream both halves build against |
-| [nimbalyst-local/plans/noderunner.md](nimbalyst-local/plans/noderunner.md) | Tasks, owners, the cut order, and every open decision |
+| [documents/public/plan.md](documents/public/plan.md) | Tasks, owners, the cut order, and every open decision |
 
 ---
 

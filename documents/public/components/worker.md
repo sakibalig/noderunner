@@ -236,7 +236,7 @@ recorded fixtures. Requests go through `createApp(...).request()`, so routing, m
 
 ## Open points
 
-Decisions are tracked in the [delivery plan](../../../nimbalyst-local/plans/noderunner.md#8-decisions).
+Decisions are tracked in the [delivery plan](../plan.md#8-decisions).
 
 - **D9** (proposed): the ship route. **D10** (proposed): `subgraph` by stable key.
 - **D15** (open): whether any visitor to the hosted build may approve and ship. The recommendation, a demo

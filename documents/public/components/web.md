@@ -77,7 +77,7 @@ export function reducer(state: RunViewState, event: RunEvent | ViewAction): RunV
 ```
 
 The LLD's `highlight: Set<number>` and single `status` field are replaced: element ids are the stable keys of
-[C4](../../../nimbalyst-local/plans/noderunner.md#3-changes-from-the-lld) — `EvNode.key` for a node and `EvEdge.key`
+[C4](../plan.md#3-changes-from-the-lld) — `EvNode.key` for a node and `EvEdge.key`
 (`<fromKey>|<type>|<toKey>`) for an edge (R9) — and the mode and the outcome are two separate unions instead of one
 value that mixed them. The shipment's events arrive on the job stream, not the run stream, and fold into `ship`
 through the same reducer.
@@ -148,7 +148,7 @@ Approval lives on the plan (R1). The actions pane has two buttons, in order: "Ap
 `POST /plans/:id/ship`, which answers `202 { jobId }` (R2). The button then subscribes to `/api/jobs/:jobId/events`
 and shows progress until the stream ends in `pr.opened`, `pr.refused`, or `job.failed`; the stream also carries the
 `ui` run's step pair, which the timeline shows
-([C3, D9](../../../nimbalyst-local/plans/noderunner.md#8-decisions)). If the fixer agent ships (T27), a "Hand to
+([C3, D9](../plan.md#8-decisions)). If the fixer agent ships (T27), a "Hand to
 fixer" button starts `POST /runs { repoId, agent: "fixer" }` instead, which the worker accepts only for an approved,
 unshipped plan, and the view follows the new run.
 
@@ -193,7 +193,7 @@ tested against a local fake worker over HTTP. React rendering is not unit-tested
 
 ## Open points
 
-Decisions are tracked in the [delivery plan](../../../nimbalyst-local/plans/noderunner.md#8-decisions).
+Decisions are tracked in the [delivery plan](../plan.md#8-decisions).
 
 - **D10** (proposed): stable keys on evidence (C4). The element ids above depend on it.
 - **D15** (open): whether any visitor to the hosted build may approve and ship. The token limits the damage to the

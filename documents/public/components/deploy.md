@@ -69,7 +69,7 @@ alternative is to run the worker on the host with `tsx watch` and only FalkorDB 
 | Web | Vercel, deploying from `main` only | Other branches are disabled with `git.deploymentEnabled` in `vercel.json`, because every push is a build |
 | Worker | One 2 GB machine on Fly.io or Railway (R25) | Long-running, so a one-to-two-minute run is not cut off by function limits; `WORKER_TOKEN` shared with Vercel only; the host's health check calls `GET /healthz` with no token |
 | FalkorDB | FalkorDB Cloud | TLS URL with a password; holds the three demo graphs and the `advisories` cache |
-| Sandbox | Open, [D14](../../../nimbalyst-local/plans/noderunner.md#8-decisions); see below | Limited to 768 MB of memory (R25) |
+| Sandbox | Open, [D14](../plan.md#8-decisions); see below | Limited to 768 MB of memory (R25) |
 
 CORS on the worker allows only `WEB_ORIGIN`, the Vercel domain, and the browser reaches the worker only through the
 [web proxy](web.md#proxy). The worker enforces the rate limit, keyed on the `X-Forwarded-For` the proxy sends with
@@ -92,7 +92,7 @@ cannot starve the worker (R25). Sandbox egress is not restricted to the npm regi
 
 Before judging, the hosted build holds, so judges see results without waiting:
 
-- The three demo repositories ([D6](../../../nimbalyst-local/plans/noderunner.md#8-decisions)), ingested at their
+- The three demo repositories ([D6](../plan.md#8-decisions)), ingested at their
   pinned commits with `POST /repos { url, sha }`.
 - One finished triage run on each, with `status: done` and `unverified: false`, so the home page and the repository
   page show a funnel and a last run.
@@ -153,7 +153,7 @@ file instead, where they count as a separate client.
 
 ## Open points
 
-Decisions are tracked in the [delivery plan](../../../nimbalyst-local/plans/noderunner.md#8-decisions).
+Decisions are tracked in the [delivery plan](../plan.md#8-decisions).
 
 - **D14** (open): where the sandbox runs on the hosted build; recommended, the unprivileged child process.
 - **D15** (open): whether any visitor to the hosted build may approve and ship. The token is limited to the demo

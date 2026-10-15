@@ -410,7 +410,7 @@ faked with recorded fixtures; `Clock` and `Ids` are fixed. Tests mirror `src/` u
 
 ## Open points
 
-Decisions are tracked in the [delivery plan](../../../nimbalyst-local/plans/noderunner.md#8-decisions).
+Decisions are tracked in the [delivery plan](../plan.md#8-decisions).
 
 - **D1, D2, D3** (S1). `shortestPath` placement and zero length, `algo.pageRank`, and the read-only path. If the Node
   client has no read-only query, the text guard in `read_only_cypher` is the only defence, which the P0 rules do not

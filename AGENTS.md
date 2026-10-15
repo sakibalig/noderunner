@@ -18,7 +18,7 @@ Three documents carry the detailed rules, and all three are binding. Read them b
 When this file and a linked standard disagree, the standard wins. When a rule is genuinely unclear, or a material
 product or architecture decision underneath it is unresolved, the single correct action is to stop and ask the
 owner rather than to guess and proceed as though the matter were settled. Open decisions are listed in the
-[delivery plan](nimbalyst-local/plans/noderunner.md#8-decisions); an open row there blocks the work that depends on it.
+[delivery plan](documents/public/plan.md#8-decisions); an open row there blocks the work that depends on it.
 
 ## Rule strength and authority
 

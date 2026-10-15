@@ -5,3 +5,4 @@ dist/
 .next/
 coverage/
 .DS_Store
+nimbalyst-local/

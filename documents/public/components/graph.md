@@ -183,7 +183,7 @@ All integration tests run against a real FalkorDB container from `docker compose
 
 ## Open points
 
-Each is answered by spike S1 and recorded in the [decisions](../../../nimbalyst-local/plans/noderunner.md#8-decisions):
+Each is answered by spike S1 and recorded in the [decisions](../plan.md#8-decisions):
 
 - D1: `shortestPath` placement (projection or `MATCH`) and its minimum length; fallback `algo.BFS` or a bounded match
   with `LIMIT 1`. Affects G3 and `tier.reachable`.

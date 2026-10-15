@@ -285,5 +285,5 @@ Nothing is faked: core has no I/O.
 ## Open points
 
 - `EvNode.key`, `EvEdge` keys, and `subgraph` taking keys are change C4, still *proposed* as
-  [D10](../../../nimbalyst-local/plans/noderunner.md#8-decisions).
+  [D10](../plan.md#8-decisions).
 - `isAffected` against real npm advisories waits on the S2 fixtures (D5).

@@ -180,5 +180,5 @@ is `null`.
 - Three refinements of the LLD need the other owner's agreement: coverage counted per `(finding, install)` target
   rather than per finding; `maxSatisfying` rather than "admits an unaffected version", matching what a fresh
   install picks; and the single-parent rule for bumps. The plan-wide ceiling of 300 fetches is new.
-- None of the open S1 and S2 decisions, [D1–D3 and D5](../../../nimbalyst-local/plans/noderunner.md#8-decisions),
+- None of the open S1 and S2 decisions, [D1–D3 and D5](../plan.md#8-decisions),
   blocks the planner: chains use a bounded named path rather than `shortestPath`.

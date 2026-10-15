@@ -252,5 +252,5 @@ FalkorDB is real; `Forge` and `Advisories` are recorded fixtures; `Clock` is fix
 
 ## Open points
 
-- The OSV chunk size is [D5](../../../nimbalyst-local/plans/noderunner.md#8-decisions).
+- The OSV chunk size is [D5](../plan.md#8-decisions).
 - The worker should refuse runs on a repository whose last ingest failed until a re-ingest succeeds.

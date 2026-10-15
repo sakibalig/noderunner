@@ -114,7 +114,7 @@ that `POST /plans/:id/ship` starts (R2, R8).
 6. **Refuse on regression.** If any key in `newFindings` is `import-reachable`, return
    `{ outcome: "refused", reason: "new reachable finding", verification }` and stop (R4). Nothing is pushed, and the
    shipment job emits `pr.refused` with the verification
-   ([C8](../../../nimbalyst-local/plans/noderunner.md#3-changes-from-the-lld)). Findings still open, and new
+   ([C8](../plan.md#3-changes-from-the-lld)). Findings still open, and new
    findings in other tiers, do not block; they are reported in the description.
 7. **Propose.** The fork is `PR_TARGET_OWNER/<repo name>`; any other target is refused. Call `Forge.propose` with a
    `Change` whose `base` is `snapshot_sha`, whose `branch` is `noderunner/plan-<last 8 characters of the plan id>`,
@@ -157,7 +157,7 @@ after 120 seconds or on abort, and the folder is removed in `finally`.
 `--network bridge` lets npm reach any destination, not only the registry; that egress is recorded as a known gap in
 [architecture.md](../architecture.md#15-known-gaps) (R25), and `--ignore-scripts` with the absence of repository
 code is what keeps regeneration safe. Where the sandbox runs on the hosted build, which has no Docker daemon, is
-open as [D14](../../../nimbalyst-local/plans/noderunner.md#8-decisions); the recommended answer is a second
+open as [D14](../plan.md#8-decisions); the recommended answer is a second
 `Sandbox` adapter that runs the same npm commands as an unprivileged child process in a temporary folder holding
 only the two files, with the same argument passing and limits that a child process can hold.
 
@@ -241,7 +241,7 @@ and holds proposed branches and pull requests in memory; the fake sandbox return
 
 ## Open points
 
-Decisions are tracked in the [delivery plan](../../../nimbalyst-local/plans/noderunner.md#8-decisions).
+Decisions are tracked in the [delivery plan](../plan.md#8-decisions).
 
 - **D14.** Where the sandbox runs on the hosted build; see [the sandbox](#the-sandbox) and [deploy](deploy.md).
 - **D15.** Whether any visitor to the hosted build may approve and ship; the recommended passphrase gate sits in

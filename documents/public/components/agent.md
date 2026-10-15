@@ -248,7 +248,7 @@ adapter with scripted `tool_use` turns; `Clock` and `Ids` are fixed.
 
 ## Open points
 
-Decisions are tracked in the [delivery plan](../../../nimbalyst-local/plans/noderunner.md#8-decisions).
+Decisions are tracked in the [delivery plan](../plan.md#8-decisions).
 
 - **D8** (proposed): the second `recall_decisions` in the default plan (C2).
 - **In-run model fallback.** Today the fallback is a configuration change. Switching mid-run would drop the

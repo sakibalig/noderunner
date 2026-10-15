@@ -186,7 +186,7 @@ so registration, schemas, and serialisation are real. GitHub and the sandbox are
 
 ## Open points
 
-Decisions are tracked in the [delivery plan](../../../nimbalyst-local/plans/noderunner.md#8-decisions).
+Decisions are tracked in the [delivery plan](../plan.md#8-decisions).
 
 - **Hosted HTTP.** The HTTP transport binds to `127.0.0.1`; serving it publicly from the hosted build is not planned,
   and would need its own host and rate limit on top of `MCP_TOKEN`.

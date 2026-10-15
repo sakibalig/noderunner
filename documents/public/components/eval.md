@@ -142,7 +142,7 @@ cannot rewrite) records the closed count as "not verified" for that run rather t
 
 ## Open points
 
-Decisions are tracked in the [delivery plan](../../../nimbalyst-local/plans/noderunner.md#8-decisions).
+Decisions are tracked in the [delivery plan](../plan.md#8-decisions).
 
-- **[D6](../../../nimbalyst-local/plans/noderunner.md#8-decisions):** the three repositories and their commits;
+- **[D6](../plan.md#8-decisions):** the three repositories and their commits;
   `repos.json` stays empty until S4 answers.
