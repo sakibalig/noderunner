@@ -4,6 +4,7 @@ import { Agent } from "./events.ts";
 import { EvEdge, Evidence, EvNode } from "./evidence.ts";
 import { FindingKey, JobId, PlanId, RunId, Sha, StepId, segment } from "./ids.ts";
 import { Json } from "./json.ts";
+import { limits } from "./limits.ts";
 
 export const RepoId = z
   .string()
@@ -103,7 +104,10 @@ export const SubgraphQuery = z.object({
 export type SubgraphQuery = z.infer<typeof SubgraphQuery>;
 
 /** GET /repos/:owner/:name/subgraph. */
-export const Subgraph = z.object({ nodes: z.array(EvNode), edges: z.array(EvEdge) });
+export const Subgraph = z.object({
+  nodes: z.array(EvNode).max(limits.subgraphNodes),
+  edges: z.array(EvEdge),
+});
 export type Subgraph = z.infer<typeof Subgraph>;
 
 /** POST /runs. */
@@ -149,7 +153,7 @@ export const RunView = z.object({
     }),
   ),
   report: z.string(),
-  plan: PlanView.nullable(),
+  plan: PlanView.optional(),
 });
 export type RunView = z.infer<typeof RunView>;
 

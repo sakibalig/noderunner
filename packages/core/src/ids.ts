@@ -19,7 +19,7 @@ export type FindingKey = z.infer<typeof FindingKey>;
 
 export const LockPath = z
   .string()
-  .regex(/^node_modules\/\S+$/)
+  .regex(/^(?:[^\s/]+\/)*node_modules\/\S+$/)
   .brand<"LockPath">()
   .describe("An install path from package-lock.json");
 export type LockPath = z.infer<typeof LockPath>;
