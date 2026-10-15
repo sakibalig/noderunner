@@ -276,7 +276,7 @@ Never cut: the funnel, the run view with the evidence highlight, the agent's cit
 ## Every day
 
 - 10:00 and 18:00 IST calls with Shaukat: done, next, blocked. The evening call checks the day's exit.
-- No direct commits to `main`. For each task: `git switch main && git pull`, then `git switch -c t09-worker`, push
+- No direct commits to `main`. For each task: `git switch main && git pull`, then `git switch -c feat/t09-worker`, push
   the branch, and merge through a pull request within the day; every merge to `main` is a Vercel build.
 - Done means the task's tests pass with `pnpm test`, `pnpm check` is clean, and Shaukat is told at the next call.
 - Update the task's status in the [delivery plan](../plan.md) at the evening call.

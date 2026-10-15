@@ -142,10 +142,10 @@ Make the smallest complete change that delivers the task, and implement the whol
 without the use case that consumes it. Stay within the task and preserve the other owner's work. A change to
 `packages/core` or to a file under [contracts](../../../contracts) is reviewed by the other owner before it merges.
 Nobody commits directly to `main`. Every change starts from an up-to-date `main` (`git switch main && git pull`)
-on a short-lived branch named after its task (`t12-reachability`, or `docs/<topic>` for documentation), is pushed to
-that branch, and reaches `main` through a pull request merged within the day. Merges to `main` happen at
-checkpoints, not per commit, because every push to `main` is a Vercel build. From Saturday afternoon `main` must
-always run the full demo script.
+on a short-lived branch named `<type>/<task>-<word>`, where the type matches the commit type (`feat/t12-reachability`,
+`fix/t29-replay`, `chore/ci-checks`, `docs/sakib-track`), is pushed to that branch, and reaches `main` through a pull
+request merged within the day. Merges to `main` happen at checkpoints, not per commit, because every push to `main`
+is a Vercel build. From Saturday afternoon `main` must always run the full demo script.
 
 ## Testing
 
