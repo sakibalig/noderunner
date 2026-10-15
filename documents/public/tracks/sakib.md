@@ -67,7 +67,7 @@ flowchart LR
    segment of the demo (D6). Record them in `eval/repos.json` once T01 exists, and tell Shaukat at once: his T04
    needs demo repository 1.
 2. If S4 is not done: a fine-grained GitHub token limited to the three forks, with contents and pull request write
-   access; a FalkorDB Cloud account; an OpenAI API key.
+   access; a FalkorDB Cloud account; an API key for the chosen LLM provider (OpenAI by default).
 3. If S3 is not done: a throwaway script that runs one OpenAI tool-calling loop with one fake tool and streaming, and a
    hello-world MCP server added to an MCP client such as the Codex CLI. Keep it outside the repository; it exists to remove surprises from T16
    and T18.
@@ -184,7 +184,7 @@ and `?replay=1`, `GET /repos/:owner/:name/subgraph`, the findings routes, `POST 
 **T16 — the triage agent (5 h).** Start against mock tools that return the fixture's results, so the loop is
 finished before Shaukat's T12 lands, then switch to the real toolbox. From [agent.md](../components/agent.md):
 
-1. The OpenAI adapter behind the `Model` port: streaming Responses API, `max_output_tokens` 16,000, `opaque` reasoning items passed back
+1. The OpenAI adapter in `adapters/model/` and `modelFor` ([llm](../components/llm.md)): streaming Responses API, `max_output_tokens` 16,000, `opaque` reasoning items passed back
    unchanged, the `refusal` stop, `store: false`, and instructions and tools kept stable for automatic prompt caching.
 2. The loop: sequential tool calls through `callTool` with `StepHooks`, `step.started` from `onStart`, the 15-call
    cap, `message.delta` streaming.

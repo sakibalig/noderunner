@@ -76,7 +76,7 @@ both wrap file text as quoted data. Same model, same system goal, same report fo
 
 ## Runner
 
-`pnpm eval` runs `eval/src/main.ts`, which parses its configuration (`FALKORDB_URL`, `OPENAI_API_KEY`, `MODEL`,
+`pnpm eval` runs `eval/src/main.ts`, which parses its configuration (`FALKORDB_URL`, `LLM_PROVIDER`, `LLM_MODEL`, the provider key,
 `GITHUB_TOKEN`) through the core env schema and builds the same adapters as the worker.
 
 1. Refuse to start if `FALKORDB_URL` is the hosted instance, or if any target graph holds a `Decision` node, since

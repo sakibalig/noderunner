@@ -16,7 +16,8 @@ describe("parseEnv", () => {
   it("applies defaults for the worker", () => {
     const env = parseEnv("worker", worker);
     expect(env.PORT).toBe(8787);
-    expect(env.MODEL).toBe("gpt-5");
+    expect(env.LLM_PROVIDER).toBe("openai");
+    expect(env.LLM_MODEL).toBeUndefined();
     expect(env.CACHE_DIR).toBe(".cache");
   });
 
@@ -27,14 +28,14 @@ describe("parseEnv", () => {
       WORKER_TOKEN: undefined,
       FALKORDB_URL: "http://x",
       OPENAI_API_KEY: secret,
-      MODEL: "gpt",
+      LLM_PROVIDER: "grok",
     };
     try {
       parseEnv("worker", bad);
       expect.unreachable();
     } catch (error) {
       expect(error).toBeInstanceOf(EnvError);
-      expect((error as EnvError).names).toEqual(["FALKORDB_URL", "MODEL", "WORKER_TOKEN"]);
+      expect((error as EnvError).names).toEqual(["FALKORDB_URL", "LLM_PROVIDER", "WORKER_TOKEN"]);
       expect((error as EnvError).message).not.toContain(secret);
     }
   });
@@ -60,5 +61,18 @@ describe("parseEnv", () => {
     expect(() =>
       parseEnv("mcp", { FALKORDB_URL: "redis://localhost:6379", MCP_GRAPH: "advisories" }),
     ).toThrow(EnvError);
+  });
+
+  it("requires only the selected provider's key", () => {
+    const { OPENAI_API_KEY: _, ...noOpenai } = worker;
+    try {
+      parseEnv("worker", noOpenai);
+      expect.unreachable();
+    } catch (error) {
+      expect((error as EnvError).names).toEqual(["OPENAI_API_KEY"]);
+    }
+    expect(
+      parseEnv("worker", { ...noOpenai, LLM_PROVIDER: "gemini", GEMINI_API_KEY: "g" }).LLM_PROVIDER,
+    ).toBe("gemini");
   });
 });

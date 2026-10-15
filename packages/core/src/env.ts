@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { EnvError } from "./errors.ts";
 import { GraphName } from "./ids.ts";
+import { keyNames, Provider } from "./llm.ts";
 
 const blank = (value: unknown) => (value === "" ? undefined : value);
 const text = () => z.preprocess(blank, z.string().min(1));
@@ -10,8 +11,13 @@ const fields = {
   FALKORDB_URL: z
     .preprocess(blank, z.url({ protocol: /^rediss?$/ }))
     .describe("FalkorDB connection URL; secret"),
-  OPENAI_API_KEY: text().describe("OpenAI API key; secret"),
-  MODEL: z.preprocess(blank, z.enum(["gpt-5", "gpt-5-mini"]).default("gpt-5")).describe("The agent's model"),
+  LLM_PROVIDER: z.preprocess(blank, Provider.default("openai")),
+  LLM_MODEL: z
+    .preprocess(blank, z.string().min(1).optional())
+    .describe("Model id; the provider's default when unset"),
+  OPENAI_API_KEY: z.preprocess(blank, z.string().min(1).optional()).describe("OpenAI key; secret"),
+  ANTHROPIC_API_KEY: z.preprocess(blank, z.string().min(1).optional()).describe("Anthropic key; secret"),
+  GEMINI_API_KEY: z.preprocess(blank, z.string().min(1).optional()).describe("Gemini key; secret"),
   GITHUB_TOKEN: text().describe("Fine-grained GitHub token limited to the demo forks; secret"),
   PR_TARGET_OWNER: z
     .preprocess(blank, z.string().regex(/^[A-Za-z0-9-]+$/))
@@ -47,20 +53,38 @@ const fields = {
     .describe("pino log level"),
 };
 
+function requireKey(
+  env: { readonly LLM_PROVIDER: Provider } & Readonly<Record<string, unknown>>,
+  ctx: z.RefinementCtx,
+) {
+  const name = keyNames[env.LLM_PROVIDER];
+  if (env[name] === undefined)
+    ctx.addIssue({
+      code: "custom",
+      path: [name],
+      message: `required when LLM_PROVIDER is ${env.LLM_PROVIDER}`,
+    });
+}
+
 const surfaces = {
-  worker: z.object({
-    FALKORDB_URL: fields.FALKORDB_URL,
-    OPENAI_API_KEY: fields.OPENAI_API_KEY,
-    MODEL: fields.MODEL,
-    GITHUB_TOKEN: fields.GITHUB_TOKEN,
-    PR_TARGET_OWNER: fields.PR_TARGET_OWNER,
-    WORKER_TOKEN: fields.WORKER_TOKEN,
-    PORT: fields.PORT,
-    WEB_ORIGIN: fields.WEB_ORIGIN,
-    SANDBOX_IMAGE: fields.SANDBOX_IMAGE,
-    CACHE_DIR: fields.CACHE_DIR,
-    LOG_LEVEL: fields.LOG_LEVEL,
-  }),
+  worker: z
+    .object({
+      FALKORDB_URL: fields.FALKORDB_URL,
+      LLM_PROVIDER: fields.LLM_PROVIDER,
+      LLM_MODEL: fields.LLM_MODEL,
+      OPENAI_API_KEY: fields.OPENAI_API_KEY,
+      ANTHROPIC_API_KEY: fields.ANTHROPIC_API_KEY,
+      GEMINI_API_KEY: fields.GEMINI_API_KEY,
+      GITHUB_TOKEN: fields.GITHUB_TOKEN,
+      PR_TARGET_OWNER: fields.PR_TARGET_OWNER,
+      WORKER_TOKEN: fields.WORKER_TOKEN,
+      PORT: fields.PORT,
+      WEB_ORIGIN: fields.WEB_ORIGIN,
+      SANDBOX_IMAGE: fields.SANDBOX_IMAGE,
+      CACHE_DIR: fields.CACHE_DIR,
+      LOG_LEVEL: fields.LOG_LEVEL,
+    })
+    .superRefine(requireKey),
   mcp: z
     .object({
       FALKORDB_URL: fields.FALKORDB_URL,
@@ -75,12 +99,17 @@ const surfaces = {
       message: "required when MCP_HTTP_PORT is set",
     }),
   web: z.object({ WORKER_URL: fields.WORKER_URL, WORKER_TOKEN: fields.WORKER_TOKEN }),
-  eval: z.object({
-    FALKORDB_URL: fields.FALKORDB_URL,
-    OPENAI_API_KEY: fields.OPENAI_API_KEY,
-    MODEL: fields.MODEL,
-    CACHE_DIR: fields.CACHE_DIR,
-  }),
+  eval: z
+    .object({
+      FALKORDB_URL: fields.FALKORDB_URL,
+      LLM_PROVIDER: fields.LLM_PROVIDER,
+      LLM_MODEL: fields.LLM_MODEL,
+      OPENAI_API_KEY: fields.OPENAI_API_KEY,
+      ANTHROPIC_API_KEY: fields.ANTHROPIC_API_KEY,
+      GEMINI_API_KEY: fields.GEMINI_API_KEY,
+      CACHE_DIR: fields.CACHE_DIR,
+    })
+    .superRefine(requireKey),
 };
 
 export type Surface = keyof typeof surfaces;

@@ -11,6 +11,7 @@ team boundary.
 | [ingest](ingest.md) | `packages/ingest` | Shaukat (stages 1–4, 6), Sakib (stage 5) | T04–T08, T19 |
 | [tools](tools.md) | `packages/tools` | Shaukat | T12, T13 |
 | [planner](planner.md) | `packages/planner` | Shaukat | T14 |
+| [llm](llm.md) | `packages/core` port, `apps/worker/src/adapters/model` | Sakib | T16 |
 | [agent](agent.md) | `apps/worker/src/agent` | Sakib (triage loop), Shaukat (fixer) | T16, T27 |
 | [worker](worker.md) | `apps/worker` | Sakib | T09, T15 |
 | [mcp](mcp.md) | `packages/mcp` | Sakib | T18 |

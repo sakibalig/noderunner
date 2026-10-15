@@ -1,5 +1,5 @@
 import { serve } from "@hono/node-server";
-import { EnvError, parseEnv } from "@noderunner/core";
+import { EnvError, llmConfig, parseEnv } from "@noderunner/core";
 import { pino } from "pino";
 import { systemClock, ulidIds } from "./adapters/clock.ts";
 import { reachable } from "./adapters/probe.ts";
@@ -21,6 +21,7 @@ try {
 }
 
 const log = pino({ level: env.LOG_LEVEL });
+const llm = llmConfig(env);
 // Until packages/ingest and packages/graph land, ingestion and the catalog are the in-memory stand-in.
 const standin = new Standin(systemClock);
 const jobs = new Jobs({ ingest: standin.ingest, clock: systemClock, ids: ulidIds, log });
@@ -28,13 +29,13 @@ const app = createApp({
   jobs,
   catalog: standin,
   limiter: new Limiter(RATE, systemClock),
-  probe: { falkordb: reachable(env.FALKORDB_URL), model: env.OPENAI_API_KEY.length > 0 },
+  probe: { falkordb: reachable(env.FALKORDB_URL), model: llm.key.length > 0 },
   log,
   config: { token: env.WORKER_TOKEN, origin: env.WEB_ORIGIN },
 });
 
 const server = serve({ fetch: app.fetch, port: env.PORT }, () => {
-  log.info({ port: env.PORT, model: env.MODEL }, "worker.started");
+  log.info({ port: env.PORT, model: llm.id }, "worker.started");
 });
 
 async function shutdown(): Promise<void> {

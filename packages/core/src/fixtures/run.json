@@ -3,7 +3,7 @@
     "type": "run.started",
     "runId": "01JQZ87ADGKPSWZ258BEHMQTX0",
     "agent": "triage",
-    "model": "gpt-5"
+    "model": "openai/gpt-5"
   },
   {
     "type": "step.started",

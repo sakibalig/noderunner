@@ -7,6 +7,7 @@ export * from "./evidence.ts";
 export * from "./ids.ts";
 export * from "./json.ts";
 export * from "./limits.ts";
+export * from "./llm.ts";
 export type * from "./ports/advisories.ts";
 export type * from "./ports/clock.ts";
 export type * from "./ports/forge.ts";

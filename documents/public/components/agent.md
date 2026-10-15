@@ -18,7 +18,7 @@ parser, the correction round, and the step cap. It writes the run's end state on
 It does not own the Run API, the queue, the event buffer, or the creation of the `Run` node ([worker](worker.md)),
 the tools themselves ([tools](tools.md)), the baseline-only tools `search_files` and `read_file`, which live in
 `packages/tools/src/baseline/` (R18), logging of `tool.call.*` events, which the worker does from the step hooks
-(R17), or the `openai` SDK, which lives only in the `openai` adapter behind the `Model` port. It never reads
+(R17), or any LLM SDK, which lives only in the provider adapters behind the `Model` port ([llm](llm.md)). It never reads
 `process.env`: the model id, the token, and the limits arrive from the composition root.
 
 ## Interface
@@ -64,7 +64,7 @@ The loop drives the `Model` port exactly as [core](core.md#ports) states it: `tu
 specs, the whole message history, and `maxTokens`, and returns one `Turn` whose `stop` is `tool_use`, `end`,
 `limit`, or `refusal`, with its content blocks and its token usage. The loop owns the history as core `Message`s;
 an `opaque` block, which carries a reasoning item, is appended back exactly as received and never read (R15). Two
-adapters implement the port: `adapters/openai.ts` over the `openai` SDK, and `adapters/recorded.ts`, which
+adapters implement the port today: `adapters/model/openai.ts` over the `openai` SDK, and `adapters/model/recorded.ts`, which
 replays a zod-parsed JSON file of `Turn`s so a recorded run can stand in for the live model in tests, in the eval,
 and when the network fails. Limits come from `limits` in core: `runCalls` 15 and `maxTokens` 16,000. Local named
 constants: `CORRECTIONS = 1`, `ORIGIN_CALLS = 3` (the prompt's limit on `introduced_by` calls).
@@ -112,12 +112,15 @@ A capped run keeps the last text the model produced as its report, validated onc
 
 ### The OpenAI adapter
 
-`responses.stream` from the `openai` SDK with `model` from `MODEL` (`gpt-5`; `gpt-5-mini` is the configured cheaper
-fallback), `max_output_tokens` from `limits.maxTokens` (16,000), the system prompt as `instructions`, and each tool as
+One of the three provider adapters in [llm](llm.md); Anthropic and Gemini follow the same mapping table there.
+
+
+`responses.stream` from the `openai` SDK with `model` from `llmConfig(env).model` (`gpt-5` by default; any cheaper model through
+`LLM_MODEL`), `max_output_tokens` from `limits.maxTokens` (16,000), the system prompt as `instructions`, and each tool as
 a `function` tool whose `parameters` is the zod schema converted with `z.toJSONSchema`. `strict` stays off, because
 strict function schemas require every property to be present and the tool inputs have optional fields. Requests run
 with `store: false` and `include: ["reasoning.encrypted_content"]`, so no conversation is kept on OpenAI's side and
-each reasoning item comes back encrypted; the adapter maps it to `{ type: "opaque", raw }` and sends `raw` back
+each reasoning item comes back encrypted; the adapter maps it to `{ type: "opaque", carry: { provider: "openai", raw } }` and sends `raw` back
 unchanged in the next request's `input` (R15). Reasoning counts toward `max_output_tokens`, which is why the LLD's
 4,096 is raised to 16,000. A `function_call` item maps to `tool_use`, a `function_call_output` input item carries
 each tool result by `call_id`, a completed response with no function call maps to `end`, an incomplete response
