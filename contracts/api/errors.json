@@ -1,0 +1,16 @@
+{
+  "version": "0.2.0",
+  "errors": {
+    "invalid": { "status": 400, "retryable": false, "meaning": "The body or query failed its schema" },
+    "unauthorized": { "status": 401, "retryable": false, "meaning": "Missing or wrong worker token" },
+    "unapproved": { "status": 403, "retryable": false, "meaning": "The plan has not been approved by a human" },
+    "missing": { "status": 404, "retryable": false, "meaning": "No such repository, run, plan, job, or finding" },
+    "busy": { "status": 409, "retryable": true, "meaning": "The repository is being ingested, or the plan is being shipped" },
+    "shipped": { "status": 409, "retryable": false, "meaning": "The plan already has a pull request" },
+    "unsupported": { "status": 422, "retryable": false, "meaning": "The repository has no package-lock.json of version 2 or 3" },
+    "range": { "status": 422, "retryable": false, "meaning": "A dependency range in package.json is not a plain, caret, or tilde version the executor can rewrite" },
+    "limited": { "status": 429, "retryable": true, "meaning": "Over the per-client run, ingest, or ship limit" },
+    "upstream": { "status": 502, "retryable": true, "meaning": "FalkorDB, GitHub, OSV, the npm registry, the sandbox, or the model failed or timed out" },
+    "internal": { "status": 500, "retryable": false, "meaning": "An unexpected failure; the message is safe and the detail is in the logs" }
+  }
+}
