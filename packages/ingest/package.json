@@ -6,5 +6,11 @@
   "description": "The six ingestion stages",
   "exports": {
     ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@noderunner/core": "workspace:*",
+    "@noderunner/graph": "workspace:*",
+    "ignore": "7.0.12",
+    "zod": "4.6.7"
   }
 }
