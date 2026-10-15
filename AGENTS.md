@@ -37,7 +37,9 @@ graph are never waived implicitly.
 ## Ownership
 
 The repository has two owners and one boundary between them. The boundary is `packages/core`: its types, schemas,
-ports, and events change only with the other owner's review, because both halves build against them.
+ports, and events are shared by both halves. For the hackathon, the author merges their own PR once the CI checks
+pass; a change to `packages/core` or `contracts/` also gets an independent review pass (review.md) first, and the
+other owner is told at the next call.
 
 | Owner | Packages and documents |
 | --- | --- |

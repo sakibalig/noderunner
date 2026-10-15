@@ -79,15 +79,15 @@ Exit: one real repository in the graph, golden queries G1 to G5 correct.
 
 | ID | Task | Owner | Hours | Needs | Done when | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| T01 | Monorepo, tsconfig, Biome, Vitest, docker-compose with FalkorDB, `.env.example` | Sakib | 1.5 | — | `pnpm test` and `docker compose up falkordb` work | todo |
-| T02 | `packages/core`: types, schemas, events, ports, env loader, fixture run | Sakib | 2 | T01 | Merged by noon, reviewed by Shaukat | todo |
+| T01 | Monorepo, tsconfig, Biome, Vitest, docker-compose with FalkorDB, `.env.example` | Sakib | 1.5 | — | `pnpm test` and `docker compose up falkordb` work | done (PR merged) |
+| T02 | `packages/core`: types, schemas, events, ports, env loader, fixture run | Sakib | 2 | T01 | Merged by noon | done (PR merged) |
 | T03 | `packages/graph`: connect, query, roQuery, batch, migrate | Shaukat | 1.5 | T01 | Integration test creates and reads nodes | todo |
 | T04 | Ingest stage 1: tarball fetch and filter | Shaukat | 1.5 | T03 | Demo repository 1 fetched in under 10 s | todo |
 | T05 | Ingest stage 2: lockfile parser, Node resolution, writes | Shaukat | 3 | T04 | Nested-lockfile test passes; G1 matches | todo |
 | T06 | Ingest stage 3: imports, resolution, classification, `LOADS` | Shaukat | 3 | T04 | Syntax-form tests pass; G4 correct | todo |
 | T07 | Ingest stage 4: OSV, advisory cache, `isAffected`, Findings | Shaukat | 2.5 | T05 | G2 matches `npm audit` within explained differences | todo |
 | T08 | Ingest stage 5: CODEOWNERS and git history | Sakib | 2 | T03 | G5 correct on demo repository 1 | todo |
-| T09 | Worker: Hono, `/healthz`, `POST /repos` with job queue and job SSE, `GET /repos`, `summary` | Sakib | 3 | T02 | Ingest triggered over HTTP with live progress | todo |
+| T09 | Worker: Hono, `/healthz`, `POST /repos` with job queue and job SSE, `GET /repos`, `summary` | Sakib | 3 | T02 | Ingest triggered over HTTP with live progress | in review (feat/t09-worker) |
 | T10 | Web shell: home, repository page, funnel and alert table on fixture data | Sakib | 3 | T02 | Pages render from fixtures | todo |
 | T11 | Golden queries G1 to G5 checked by hand | Shaukat | 1 | T05–T07 | Day 1 exit met | todo |
 
@@ -159,8 +159,9 @@ If a day's exit condition is missed at the evening call, cut the next morning in
 ## 7. Working agreement
 
 - Two 10-minute calls a day, at 10:00 and 18:00 IST: done, next, blocked. The evening call checks the day's exit.
-- `packages/core` and anything under `contracts/` change only with the other owner's review.
-- No direct commits to `main`: branch from an up-to-date `main` per task (`t12-reachability`), push the branch,
+- The author merges their own PR once CI passes. Changes to `packages/core` or `contracts/` get an independent
+  review pass first and are announced at the next call.
+- No direct commits to `main`: branch from an up-to-date `main` per task (`feat/t12-reachability`), push the branch,
   and merge through a pull request within the day.
 - Definition of done: the task's tests pass with `pnpm test`, `pnpm check` is clean, any new Cypher is in
   `packages/graph/src/cypher`, and the other owner is told at the next call.
