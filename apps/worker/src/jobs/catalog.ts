@@ -1,4 +1,12 @@
-import type { IngestReport, RepoList, RepoRef, RepoSummary, RunEvent } from "@noderunner/core";
+import type {
+  Finding,
+  FindingQuery,
+  IngestReport,
+  RepoList,
+  RepoRef,
+  RepoSummary,
+  RunEvent,
+} from "@noderunner/core";
 
 /** Ingests one repository; `packages/ingest` behind it once it lands. */
 export type Ingester = (
@@ -10,4 +18,6 @@ export type Ingester = (
 export interface Catalog {
   list(signal: AbortSignal): Promise<RepoList["repos"]>;
   summary(repo: RepoRef, signal: AbortSignal): Promise<RepoSummary | null>;
+  /** Null when the repository was never ingested. */
+  findings(repo: RepoRef, filter: FindingQuery, signal: AbortSignal): Promise<readonly Finding[] | null>;
 }
