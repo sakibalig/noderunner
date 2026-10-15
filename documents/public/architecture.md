@@ -40,7 +40,7 @@ scanned repository.
 ```mermaid
 flowchart LR
     user["Developer or judge"] --> web["Web UI (Next.js on Vercel)"]
-    client["Any MCP client (Claude Code, Cursor)"] --> mcp["MCP server"]
+    client["Any MCP client (Cursor, Codex CLI)"] --> mcp["MCP server"]
     subgraph worker["Worker (long-running Node process)"]
         api["Run API (Hono, SSE)"] --> agent["Agent loop"]
         agent --> tools["Typed tools"]
@@ -50,7 +50,7 @@ flowchart LR
     end
     web --> api
     mcp --> tools
-    agent -.-> claude["Claude API"]
+    agent -.-> llm["OpenAI API"]
     tools --> db[("FalkorDB")]
     ingest --> db
     ingest -.-> github["GitHub API"]
@@ -235,7 +235,7 @@ and the agent and UI half both build against them with mock data until the real 
 | `@babel/parser` | Parsing imports in JS and TS source | `ingest` |
 | `semver` | Range checks, `maxSatisfying`, semver jumps | `core`, `planner` |
 | `ignore` | gitignore-style CODEOWNERS matching | `ingest` |
-| `@anthropic-ai/sdk` | The agent loop's model calls, model `claude-opus-5-5`, `claude-sonnet-5-5` as fallback | `apps/worker` |
+| `openai` | The agent loop's model calls through the Responses API, model `gpt-5`, `gpt-5-mini` as fallback | `apps/worker` |
 | `@modelcontextprotocol/sdk` | The MCP server | `mcp` |
 | `hono`, `@hono/node-server`, `p-queue` | The Run API, SSE, and the job queue | `apps/worker` |
 | `pino` | Structured logging | `apps/worker`, `mcp` |
@@ -271,7 +271,7 @@ for each are pre-loaded on the hosted build so judges see results without waitin
 | Triage run | Under 90 s and at most 15 tool calls | Tools that handle every finding at once; a hard step cap |
 | Query latency | Each tool under 500 ms | Indexes, bounded path lengths |
 | Determinism | The same repository and commit give the same tiers and plan | Algorithms in code; the model orchestrates and explains |
-| Cost | A few cents to low tens of cents per run | Short tool outputs; prompt caching on the system prompt and tool definitions |
+| Cost | A few cents to low tens of cents per run | Short tool outputs; a stable instructions-and-tools prefix that OpenAI's automatic prompt caching reuses |
 | Isolation | One repository's data never appears in another's run | One graph per repository, bound by the server |
 
 Security rules — no execution of scanned code, read-only free-form queries, tenant binding, prompt-injection

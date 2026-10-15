@@ -1,0 +1,414 @@
+[
+  {
+    "type": "run.started",
+    "runId": "01JQZ87ADGKPSWZ258BEHMQTX0",
+    "agent": "triage",
+    "model": "gpt-5"
+  },
+  {
+    "type": "step.started",
+    "stepId": "01JQZ8DGKPSWZ258BEHMQTX036",
+    "seq": 1,
+    "tool": "recall_decisions",
+    "input": {}
+  },
+  {
+    "type": "step.finished",
+    "stepId": "01JQZ8DGKPSWZ258BEHMQTX036",
+    "ok": true,
+    "summary": "No decisions recorded for this repository",
+    "evidence": {
+      "nodes": [],
+      "edges": [],
+      "cypher": ["decisions.recall"]
+    },
+    "ms": 12
+  },
+  {
+    "type": "step.started",
+    "stepId": "01JQZ8MQTX0369CFJNRVY147AD",
+    "seq": 2,
+    "tool": "list_alerts",
+    "input": {}
+  },
+  {
+    "type": "step.finished",
+    "stepId": "01JQZ8MQTX0369CFJNRVY147AD",
+    "ok": true,
+    "summary": "3 alerts: 1 critical, 2 high",
+    "evidence": {
+      "nodes": [
+        {
+          "id": 8,
+          "key": "GHSA-hrpp-h998-j3pp",
+          "label": "Vuln",
+          "name": "GHSA-hrpp-h998-j3pp"
+        },
+        {
+          "id": 9,
+          "key": "GHSA-35jh-r3h4-6jhm",
+          "label": "Vuln",
+          "name": "GHSA-35jh-r3h4-6jhm"
+        },
+        {
+          "id": 10,
+          "key": "GHSA-xvch-5gv4-984h",
+          "label": "Vuln",
+          "name": "GHSA-xvch-5gv4-984h"
+        },
+        {
+          "id": 4,
+          "key": "node_modules/qs",
+          "label": "Install",
+          "name": "qs@6.7.0"
+        },
+        {
+          "id": 5,
+          "key": "node_modules/lodash",
+          "label": "Install",
+          "name": "lodash@4.17.20"
+        },
+        {
+          "id": 6,
+          "key": "node_modules/minimist",
+          "label": "Install",
+          "name": "minimist@1.2.0"
+        }
+      ],
+      "edges": [
+        {
+          "id": 101,
+          "key": "GHSA-hrpp-h998-j3pp|AFFECTS|node_modules/qs",
+          "type": "AFFECTS",
+          "from": 8,
+          "to": 4,
+          "fromKey": "GHSA-hrpp-h998-j3pp",
+          "toKey": "node_modules/qs"
+        },
+        {
+          "id": 102,
+          "key": "GHSA-35jh-r3h4-6jhm|AFFECTS|node_modules/lodash",
+          "type": "AFFECTS",
+          "from": 9,
+          "to": 5,
+          "fromKey": "GHSA-35jh-r3h4-6jhm",
+          "toKey": "node_modules/lodash"
+        },
+        {
+          "id": 103,
+          "key": "GHSA-xvch-5gv4-984h|AFFECTS|node_modules/minimist",
+          "type": "AFFECTS",
+          "from": 10,
+          "to": 6,
+          "fromKey": "GHSA-xvch-5gv4-984h",
+          "toKey": "node_modules/minimist"
+        }
+      ],
+      "cypher": ["alerts.list"]
+    },
+    "ms": 18
+  },
+  {
+    "type": "step.started",
+    "stepId": "01JQZ8VY147ADGKPSWZ258BEHM",
+    "seq": 3,
+    "tool": "reachability",
+    "input": {}
+  },
+  {
+    "type": "step.finished",
+    "stepId": "01JQZ8VY147ADGKPSWZ258BEHM",
+    "ok": true,
+    "summary": "1 import-reachable, 1 installed, 1 dev-only",
+    "evidence": {
+      "nodes": [
+        {
+          "id": 1,
+          "key": "src/server.js",
+          "label": "File",
+          "name": "src/server.js"
+        },
+        {
+          "id": 2,
+          "key": "node_modules/express",
+          "label": "Install",
+          "name": "express@4.17.1"
+        },
+        {
+          "id": 3,
+          "key": "node_modules/body-parser",
+          "label": "Install",
+          "name": "body-parser@1.19.0"
+        },
+        {
+          "id": 4,
+          "key": "node_modules/qs",
+          "label": "Install",
+          "name": "qs@6.7.0"
+        },
+        {
+          "id": 8,
+          "key": "GHSA-hrpp-h998-j3pp",
+          "label": "Vuln",
+          "name": "GHSA-hrpp-h998-j3pp"
+        }
+      ],
+      "edges": [
+        {
+          "id": 104,
+          "key": "src/server.js|LOADS|node_modules/express",
+          "type": "LOADS",
+          "from": 1,
+          "to": 2,
+          "fromKey": "src/server.js",
+          "toKey": "node_modules/express"
+        },
+        {
+          "id": 105,
+          "key": "node_modules/express|DEPENDS_ON|node_modules/body-parser",
+          "type": "DEPENDS_ON",
+          "from": 2,
+          "to": 3,
+          "fromKey": "node_modules/express",
+          "toKey": "node_modules/body-parser"
+        },
+        {
+          "id": 106,
+          "key": "node_modules/body-parser|DEPENDS_ON|node_modules/qs",
+          "type": "DEPENDS_ON",
+          "from": 3,
+          "to": 4,
+          "fromKey": "node_modules/body-parser",
+          "toKey": "node_modules/qs"
+        },
+        {
+          "id": 101,
+          "key": "GHSA-hrpp-h998-j3pp|AFFECTS|node_modules/qs",
+          "type": "AFFECTS",
+          "from": 8,
+          "to": 4,
+          "fromKey": "GHSA-hrpp-h998-j3pp",
+          "toKey": "node_modules/qs"
+        }
+      ],
+      "cypher": ["tier.reachable", "tier.direct", "tier.rest"]
+    },
+    "ms": 41
+  },
+  {
+    "type": "step.started",
+    "stepId": "01JQZ8258BEHMQTX0369CFJNRV",
+    "seq": 4,
+    "tool": "recall_decisions",
+    "input": {}
+  },
+  {
+    "type": "step.finished",
+    "stepId": "01JQZ8258BEHMQTX0369CFJNRV",
+    "ok": true,
+    "summary": "No decisions recorded; nothing stale",
+    "evidence": {
+      "nodes": [],
+      "edges": [],
+      "cypher": ["decisions.recall"]
+    },
+    "ms": 9
+  },
+  {
+    "type": "step.started",
+    "stepId": "01JQZ89CFJNRVY147ADGKPSWZ2",
+    "seq": 5,
+    "tool": "introduced_by",
+    "input": {
+      "key": "GHSA-hrpp-h998-j3pp|qs"
+    }
+  },
+  {
+    "type": "step.finished",
+    "stepId": "01JQZ89CFJNRVY147ADGKPSWZ2",
+    "ok": true,
+    "summary": "qs is introduced by express through body-parser",
+    "evidence": {
+      "nodes": [
+        {
+          "id": 2,
+          "key": "node_modules/express",
+          "label": "Install",
+          "name": "express@4.17.1"
+        },
+        {
+          "id": 3,
+          "key": "node_modules/body-parser",
+          "label": "Install",
+          "name": "body-parser@1.19.0"
+        },
+        {
+          "id": 4,
+          "key": "node_modules/qs",
+          "label": "Install",
+          "name": "qs@6.7.0"
+        }
+      ],
+      "edges": [
+        {
+          "id": 105,
+          "key": "node_modules/express|DEPENDS_ON|node_modules/body-parser",
+          "type": "DEPENDS_ON",
+          "from": 2,
+          "to": 3,
+          "fromKey": "node_modules/express",
+          "toKey": "node_modules/body-parser"
+        },
+        {
+          "id": 106,
+          "key": "node_modules/body-parser|DEPENDS_ON|node_modules/qs",
+          "type": "DEPENDS_ON",
+          "from": 3,
+          "to": 4,
+          "fromKey": "node_modules/body-parser",
+          "toKey": "node_modules/qs"
+        }
+      ],
+      "cypher": ["introduced.chains"]
+    },
+    "ms": 15
+  },
+  {
+    "type": "step.started",
+    "stepId": "01JQZ8GKPSWZ258BEHMQTX0369",
+    "seq": 6,
+    "tool": "rank_packages",
+    "input": {
+      "top": 3
+    }
+  },
+  {
+    "type": "step.finished",
+    "stepId": "01JQZ8GKPSWZ258BEHMQTX0369",
+    "ok": true,
+    "summary": "express carries 42% of the production tree",
+    "evidence": {
+      "nodes": [
+        {
+          "id": 2,
+          "key": "node_modules/express",
+          "label": "Install",
+          "name": "express@4.17.1"
+        },
+        {
+          "id": 11,
+          "key": "node_modules/winston",
+          "label": "Install",
+          "name": "winston@3.3.3"
+        },
+        {
+          "id": 3,
+          "key": "node_modules/body-parser",
+          "label": "Install",
+          "name": "body-parser@1.19.0"
+        }
+      ],
+      "edges": [],
+      "cypher": ["rank.pagerank"]
+    },
+    "ms": 27
+  },
+  {
+    "type": "step.started",
+    "stepId": "01JQZ8QTX0369CFJNRVY147ADG",
+    "seq": 7,
+    "tool": "plan_upgrades",
+    "input": {
+      "tiers": ["import-reachable", "installed"],
+      "allowMajor": false
+    }
+  },
+  {
+    "type": "step.finished",
+    "stepId": "01JQZ8QTX0369CFJNRVY147ADG",
+    "ok": true,
+    "summary": "2 upgrades close 2 findings at cost 3",
+    "evidence": {
+      "nodes": [
+        {
+          "id": 2,
+          "key": "node_modules/express",
+          "label": "Install",
+          "name": "express@4.17.1"
+        },
+        {
+          "id": 5,
+          "key": "node_modules/lodash",
+          "label": "Install",
+          "name": "lodash@4.17.20"
+        }
+      ],
+      "edges": [],
+      "cypher": ["plan.targets", "plan.write"]
+    },
+    "ms": 230
+  },
+  {
+    "type": "step.started",
+    "stepId": "01JQZ8Y147ADGKPSWZ258BEHMQ",
+    "seq": 8,
+    "tool": "owners_for",
+    "input": {
+      "planId": "01JQZ8EHMQTX0369CFJNRVY147"
+    }
+  },
+  {
+    "type": "step.finished",
+    "stepId": "01JQZ8Y147ADGKPSWZ258BEHMQ",
+    "ok": true,
+    "summary": "@acme/api-team reviews both upgrades",
+    "evidence": {
+      "nodes": [
+        {
+          "id": 12,
+          "key": "@acme/api-team",
+          "label": "Person",
+          "name": "@acme/api-team"
+        },
+        {
+          "id": 1,
+          "key": "src/server.js",
+          "label": "File",
+          "name": "src/server.js"
+        }
+      ],
+      "edges": [
+        {
+          "id": 107,
+          "key": "@acme/api-team|OWNS|src/server.js",
+          "type": "OWNS",
+          "from": 12,
+          "to": 1,
+          "fromKey": "@acme/api-team",
+          "toKey": "src/server.js"
+        }
+      ],
+      "cypher": ["owners.files"]
+    },
+    "ms": 14
+  },
+  {
+    "type": "message.delta",
+    "text": "## Funnel\n| Stage | Alerts |\n|---|---|\n| All alerts | 3 |\n| In the production tree | 2 |\n| Import-reachable | 1 |\n| Still open after the plan | 0 |\n\nThe repository has 3 alerts [s:01JQZ8MQTX0369CFJNRVY147AD]. One is import-reachable: `src/server.js` loads express, which reaches qs 6.7.0 through body-parser [s:01JQZ8VY147ADGKPSWZ258BEHM][s:01JQZ89CFJNRVY147ADGKPSWZ2]. lodash 4.17.20 is installed in"
+  },
+  {
+    "type": "message.delta",
+    "text": " production but not reached from production code, and minimist is dev-only [s:01JQZ8VY147ADGKPSWZ258BEHM].\n\n## Plan\n| Upgrade | Closes | Risk |\n|---|---|---|\n| express 4.17.1 \u2192 4.21.2 | GHSA-hrpp-h998-j3pp | minor |\n| refresh lodash \u2192 4.17.21 | GHSA-35jh-r3h4-6jhm | lockfile only |\n\nThe plan closes both production findings at cost 3 [s:01JQZ8QTX0369CFJNRVY147ADG].\n\n## Reviewers\n@acme/api-team owns"
+  },
+  {
+    "type": "message.delta",
+    "text": " `src/server.js` [s:01JQZ8Y147ADGKPSWZ258BEHMQ].\n\n## Stale decisions\nNone [s:01JQZ8258BEHMQTX0369CFJNRV].\n\n## Not covered\nminimist (dev-only) is reported, not planned [s:01JQZ8VY147ADGKPSWZ258BEHM].\n\n```result\n{\"mustFix\":[\"GHSA-hrpp-h998-j3pp|qs\"],\"upgrades\":[{\"package\":\"express\",\"to\":\"4.21.2\"},{\"package\":\"lodash\",\"to\":\"4.17.21\"}]}\n```"
+  },
+  {
+    "type": "run.finished",
+    "runId": "01JQZ87ADGKPSWZ258BEHMQTX0",
+    "status": "done",
+    "unverified": false,
+    "report": "## Funnel\n| Stage | Alerts |\n|---|---|\n| All alerts | 3 |\n| In the production tree | 2 |\n| Import-reachable | 1 |\n| Still open after the plan | 0 |\n\nThe repository has 3 alerts [s:01JQZ8MQTX0369CFJNRVY147AD]. One is import-reachable: `src/server.js` loads express, which reaches qs 6.7.0 through body-parser [s:01JQZ8VY147ADGKPSWZ258BEHM][s:01JQZ89CFJNRVY147ADGKPSWZ2]. lodash 4.17.20 is installed in production but not reached from production code, and minimist is dev-only [s:01JQZ8VY147ADGKPSWZ258BEHM].\n\n## Plan\n| Upgrade | Closes | Risk |\n|---|---|---|\n| express 4.17.1 \u2192 4.21.2 | GHSA-hrpp-h998-j3pp | minor |\n| refresh lodash \u2192 4.17.21 | GHSA-35jh-r3h4-6jhm | lockfile only |\n\nThe plan closes both production findings at cost 3 [s:01JQZ8QTX0369CFJNRVY147ADG].\n\n## Reviewers\n@acme/api-team owns `src/server.js` [s:01JQZ8Y147ADGKPSWZ258BEHMQ].\n\n## Stale decisions\nNone [s:01JQZ8258BEHMQTX0369CFJNRV].\n\n## Not covered\nminimist (dev-only) is reported, not planned [s:01JQZ8VY147ADGKPSWZ258BEHM].\n\n```result\n{\"mustFix\":[\"GHSA-hrpp-h998-j3pp|qs\"],\"upgrades\":[{\"package\":\"express\",\"to\":\"4.21.2\"},{\"package\":\"lodash\",\"to\":\"4.17.21\"}]}\n```"
+  }
+]

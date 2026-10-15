@@ -16,12 +16,12 @@ The layers and their permitted contents are fixed:
 | --- | --- | --- |
 | Core | Domain types, zod schemas, tier and staleness policy, the planner's pure algorithm, ports, events | `packages/core`, the pure half of `packages/planner` |
 | Application | Use cases that orchestrate ports: ingestion stages, the ten tools, the agent loop, the executor's steps | `packages/ingest`, `packages/tools`, `packages/executor`, `apps/worker/src/agent` |
-| Adapter | FalkorDB, GitHub, OSV, the npm registry, the Claude API, the Docker sandbox, the clock | `packages/graph` and each package's `adapters/` folder |
+| Adapter | FalkorDB, GitHub, OSV, the npm registry, the OpenAI API, the Docker sandbox, the clock | `packages/graph` and each package's `adapters/` folder |
 | Surface | The Run API, the MCP server, the web UI | `apps/worker/src/api`, `packages/mcp`, `apps/web` |
 | Composition | Reads configuration, constructs adapters, injects them into use cases | `apps/worker/src/main.ts`, `packages/mcp/src/main.ts` |
 
 `core` MUST NOT import a framework, a database driver, an HTTP client, or a model SDK, so no `falkordb`,
-`@anthropic-ai/sdk`, `hono`, or `octokit` type ever appears in a port signature. An application package depends on
+`openai`, `hono`, or `octokit` type ever appears in a port signature. An application package depends on
 ports, never on a concrete adapter. No package imports another package's internals; it imports the package's
 public `index.ts` only. The package manifests enforce the direction: `packages/core/package.json` lists `zod` and
 `semver` as its only dependencies, so a vendor import there fails to resolve, and Biome's `noRestrictedImports`
@@ -63,17 +63,18 @@ form: the snake_case tool names the model calls (`list_alerts`), Cypher labels a
 
 ## Documents, docstrings, and comments
 
-Every exported function, class, and type carries a TSDoc block stating its contract only: what it accepts, what it
-returns, the invariant it holds, and the error it raises. Rationale belongs in a design document under
-[documents](..), not in source. A comment appears only where the code is genuinely non-obvious or an external
-constraint is at play, and is normally one line. Emoji, AI-style filler, and a bare TODO without a task id (`T14`)
+Keep docstrings short: one line, `/** ... */`, on an exported symbol only when its name, its types, and its schema's
+`.describe()` do not already say what it does. No `@param` or `@returns` that restate the signature; add a tag only
+for a non-obvious failure or unit. Rationale belongs in a design document under [documents](..), not in source. An
+inline comment appears only where the code is genuinely non-obvious or an external constraint is at play, and is
+one line. Emoji, AI-style filler, and a bare TODO without a task id (`T14`)
 are not allowed. Markdown prose fills lines to about one hundred characters before wrapping.
 
 ## Configuration
 
 All configuration is read once, in the composition root, through the zod schema in `packages/core/src/env.ts`, so a
 missing or malformed variable fails at start-up with an actionable message. Nothing below the composition root
-reads `process.env`. Secrets — `ANTHROPIC_API_KEY`, `GITHUB_TOKEN`, `WORKER_TOKEN`, the FalkorDB password — are
+reads `process.env`. Secrets — `OPENAI_API_KEY`, `GITHUB_TOKEN`, `WORKER_TOKEN`, the FalkorDB password — are
 never logged, never written to the graph, never placed in a process argument, and never committed; `.env.example`
 lists names only.
 
@@ -151,7 +152,7 @@ always run the full demo script.
 Every rule that decides an outcome carries a deterministic test: Node's module resolution in the lockfile walk, the
 import parser's syntax forms, `isAffected` and `lowestFixed`, the tier query, each upgrade kind in the planner, the
 staleness rules, and `validateReport`. A test exercises the real objects and the real flow, faking only a genuine
-external boundary — FalkorDB is real (a Docker container), while GitHub, OSV, the npm registry, the Claude API,
+external boundary — FalkorDB is real (a Docker container), while GitHub, OSV, the npm registry, the OpenAI API,
 and the sandbox are faked with recorded fixtures. Tests use Vitest, mirror the source folder structure, and state
 a concrete input and assert a concrete output or graph state, so each can fail when the behaviour regresses. For a
 changed behaviour, the happy path, each branch, and each edge — empty, missing, malformed, over the limit — each

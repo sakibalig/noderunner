@@ -69,7 +69,7 @@ updated at each evening call.
 | --- | --- | --- | --- | --- | --- | --- |
 | S1 | FalkorDB in Docker; verify `shortestPath`, `algo.pageRank`, read-only queries, indexes, from the Node client | Shaukat | 2.5 | — | Every `VERIFY` in the component designs has an answer (D1–D4) | unknown |
 | S2 | OSV `querybatch` and `/vulns` on 5 packages; npm packument shape; batch size limit | Shaukat | 1 | — | Sample responses saved as fixtures (D5) | unknown |
-| S3 | Claude tool-use loop with one fake tool and streaming; MCP hello-world added to Claude Code | Sakib | 2 | — | Both work end to end | unknown |
+| S3 | OpenAI tool-calling loop with one fake tool and streaming; MCP hello-world added to an MCP client | Sakib | 2 | — | Both work end to end | unknown |
 | S4 | Pick and fork 3 demo repositories (lockfile v2 or v3, under 1,500 installs, a mix of tiers, CODEOWNERS on one); fine-grained token; FalkorDB Cloud account | Sakib | 2 | — | Repositories listed with pinned commits (D6) | unknown |
 | S5 | Read the design together; agree `packages/core` types | Both | 1 | — | Open decisions resolved or assigned | unknown |
 
@@ -103,7 +103,7 @@ Exit: a CLI run on demo repository 1 gives a correct plan with citations and a s
 | T15 | Run endpoints: `POST /runs`, run SSE with replay, `GET /runs/:id`, `subgraph`, `approve`, `ship`, `decisions` | Sakib | 2.5 | T09 | curl can start a run and stream it | todo |
 | T16 | Agent loop, triage system prompt, step cap, report validator | Sakib | 5 | T02, then T12 | Day 2 exit met | todo |
 | T17 | Run view: reducer, step timeline, report panel with citations, live SSE | Sakib | 3.5 | T15 | A live run renders end to end | todo |
-| T18 | MCP server, stdio and HTTP, read-only by default | Sakib | 1.5 | T13 | Claude Code answers "which alerts are reachable" through it | todo |
+| T18 | MCP server, stdio and HTTP, read-only by default | Sakib | 1.5 | T13 | An MCP client answers "which alerts are reachable" through it | todo |
 
 ### Sat Oct 17 — Day 3, visible, acting, deployed
 
@@ -184,6 +184,7 @@ If a day's exit condition is missed at the evening call, cut the next morning in
 | D13 | Fill one of the two empty team seats with someone for video or design | Both | **Open** |
 | D14 | Where the sandbox runs on the hosted build. Fly.io and Railway give the worker no Docker daemon. Options: a second machine with Docker; npm as an unprivileged child process in a temporary directory holding only the two package files; or regenerate locally and ship from a laptop for the demo | Both | **Open** — recommended: the child process, since `--ignore-scripts` and the absent repository code carry the safety, not the container |
 | D15 | Whether any visitor to the hosted build may approve and ship. The token is limited to the demo forks | Both | **Open** — recommended: gate approve and ship behind a demo passphrase |
+| D16 | The LLM provider | Both | **Resolved** on Oct 15: OpenAI through the `openai` SDK and the Responses API, `gpt-5` by default and `gpt-5-mini` as the fallback; the `Model` port keeps the agent loop provider-neutral |
 
 ## 9. Risks
 
@@ -218,7 +219,7 @@ statement of every type and port. Where a component design still disagrees with 
 | R12 | The staleness query mixed aggregates in `CASE`, read the wall clock, and ignored a null `tier_at_decision` | `graph` fetches plain rows; the staleness rule is a pure function in `core` over them and the injected clock; a null tier counts as not reachable |
 | R13 | `owners_for` weighting and `shareBelow` were undefined | Defined in [tools.md](../../contracts/mcp/tools.md#the-tools) |
 | R14 | 100 alert rows overflow the 6,000-character model payload | `list_alerts` returns the 40 most severe and counts the rest |
-| R15 | `max_tokens` 4,096 is too low with adaptive thinking; thinking blocks must be returned unchanged | `max_tokens` 16,000; the `Model` port carries an `opaque` block passed back verbatim and a `refusal` stop |
+| R15 | 4,096 output tokens is too low once reasoning counts toward the limit; reasoning items must be returned unchanged | `max_output_tokens` 16,000; the `Model` port carries an `opaque` block passed back verbatim and a `refusal` stop |
 | R16 | Cypher form differed between `graph.md` and `tools.md` | `graph.md` is canonical: named `Query<R>` constants with row schemas under `cypher/` |
 | R17 | `tools.md` injected a logger; `core.md` has no logger port | Tools do not log; the worker logs `tool.call.*` from the step hooks |
 | R18 | Baseline tools were placed and named differently | `packages/tools/src/baseline/`, `search_files { text, glob? }`, `read_file { path, offset? }` |

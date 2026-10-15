@@ -50,7 +50,7 @@ These are blockers. A change that violates any of them does not merge regardless
 
 - **Hexagonal layering is mandatory.** `packages/core` holds the domain types, the policies, and the ports, and
   imports no framework, database driver, HTTP client, or model SDK. FalkorDB, GitHub, OSV, the npm registry, the
-  Claude API, and Docker live behind adapters, and every dependency points inward toward `core`.
+  OpenAI API, and Docker live behind adapters, and every dependency points inward toward `core`.
 - **A typed contract at every boundary.** Every value that crosses a package, process, network, or model boundary
   is described by a zod schema and parsed on entry. `any` is forbidden; `unknown` is allowed only at the outermost
   decoding point and is parsed into a typed value immediately.

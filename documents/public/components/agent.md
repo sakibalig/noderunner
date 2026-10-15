@@ -18,7 +18,7 @@ parser, the correction round, and the step cap. It writes the run's end state on
 It does not own the Run API, the queue, the event buffer, or the creation of the `Run` node ([worker](worker.md)),
 the tools themselves ([tools](tools.md)), the baseline-only tools `search_files` and `read_file`, which live in
 `packages/tools/src/baseline/` (R18), logging of `tool.call.*` events, which the worker does from the step hooks
-(R17), or the Anthropic SDK, which lives only in the `claude` adapter behind the `Model` port. It never reads
+(R17), or the `openai` SDK, which lives only in the `openai` adapter behind the `Model` port. It never reads
 `process.env`: the model id, the token, and the limits arrive from the composition root.
 
 ## Interface
@@ -63,8 +63,8 @@ export function validateReport(agent: AgentKind, report: string, steps: readonly
 The loop drives the `Model` port exactly as [core](core.md#ports) states it: `turn` takes the system prompt, the tool
 specs, the whole message history, and `maxTokens`, and returns one `Turn` whose `stop` is `tool_use`, `end`,
 `limit`, or `refusal`, with its content blocks and its token usage. The loop owns the history as core `Message`s;
-an `opaque` block, which carries a thinking block, is appended back exactly as received and never read (R15). Two
-adapters implement the port: `adapters/claude.ts` over `@anthropic-ai/sdk`, and `adapters/recorded.ts`, which
+an `opaque` block, which carries a reasoning item, is appended back exactly as received and never read (R15). Two
+adapters implement the port: `adapters/openai.ts` over the `openai` SDK, and `adapters/recorded.ts`, which
 replays a zod-parsed JSON file of `Turn`s so a recorded run can stand in for the live model in tests, in the eval,
 and when the network fails. Limits come from `limits` in core: `runCalls` 15 and `maxTokens` 16,000. Local named
 constants: `CORRECTIONS = 1`, `ORIGIN_CALLS = 3` (the prompt's limit on `introduced_by` calls).
@@ -110,19 +110,21 @@ or `act`) only decides what MCP clients see (R5); it does not narrow an agent's 
 
 A capped run keeps the last text the model produced as its report, validated once without a correction round.
 
-### The Claude adapter
+### The OpenAI adapter
 
-`messages.stream` with `model` from `MODEL` (`claude-opus-5-5`; `claude-sonnet-5-5` is the configured cheaper
-fallback), `max_tokens` from `limits.maxTokens` (16,000), the system prompt as one text block with
-`cache_control: { type: "ephemeral" }`, and the tool list with `cache_control` on the last tool. The cache prefix
-renders tools, then system, then messages, so the system prompt carries no run id, repository, or time; those go in
-the kickoff, and the cached prefix is shared across runs and repositories. Cache hits are confirmed from
-`usage.cache_read_input_tokens` in the `agent.model.turn` event. `tool_choice` stays `auto`, since forced tool
-choice is rejected by these models. Thinking is adaptive and cannot be disabled on `claude-opus-5-5`, and it counts
-toward `max_tokens`, which is why the LLD's 4,096 is raised to 16,000 (R15). The adapter maps each thinking or
-redacted thinking block to `{ type: "opaque", raw }` and sends `raw` back unchanged on the next request, and maps
-`stop_reason` `end_turn` to `end`, `max_tokens` to `limit`, and `refusal` to `refusal`. The SDK's own retries
-apply; after them a failure is `upstream`.
+`responses.stream` from the `openai` SDK with `model` from `MODEL` (`gpt-5`; `gpt-5-mini` is the configured cheaper
+fallback), `max_output_tokens` from `limits.maxTokens` (16,000), the system prompt as `instructions`, and each tool as
+a `function` tool whose `parameters` is the zod schema converted with `z.toJSONSchema`. `strict` stays off, because
+strict function schemas require every property to be present and the tool inputs have optional fields. Requests run
+with `store: false` and `include: ["reasoning.encrypted_content"]`, so no conversation is kept on OpenAI's side and
+each reasoning item comes back encrypted; the adapter maps it to `{ type: "opaque", raw }` and sends `raw` back
+unchanged in the next request's `input` (R15). Reasoning counts toward `max_output_tokens`, which is why the LLD's
+4,096 is raised to 16,000. A `function_call` item maps to `tool_use`, a `function_call_output` input item carries
+each tool result by `call_id`, a completed response with no function call maps to `end`, an incomplete response
+for `max_output_tokens` maps to `limit`, and a `refusal` content item maps to `refusal`. Prompt caching is automatic
+for a repeated prefix of 1,024 tokens or more, so the instructions and tools carry no run id, repository, or time;
+those go in the kickoff message, and hits are confirmed from `usage.input_tokens_details.cached_tokens` in the
+`agent.model.turn` event. `tool_choice` stays `auto`. The SDK's own retries apply; after them a failure is `upstream`.
 
 ### Triage system prompt, outline
 
@@ -243,8 +245,8 @@ adapter with scripted `tool_use` turns; `Clock` and `Ids` are fixed.
 - `validateReport` cases: no citation; unknown id; citation to a failed step; a missing funnel row; a funnel number
   one off; `total` checked against a filtered `list_alerts`; open with and without a plan; a fixer verification
   mismatch; a missing `result` block; a malformed one; two blocks, where the last is used.
-- `claude request`: the pure request builder puts `cache_control` on the system block and on the last tool only, and
-  two runs on different repositories produce byte-identical tools and system.
+- `openai request`: the pure request builder sets `store: false`, asks for encrypted reasoning, returns `opaque`
+  items unchanged, and two runs on different repositories produce byte-identical instructions and tools.
 
 ## Open points
 
@@ -252,5 +254,5 @@ Decisions are tracked in the [delivery plan](../plan.md#8-decisions).
 
 - **D8** (proposed): the second `recall_decisions` in the default plan (C2).
 - **In-run model fallback.** Today the fallback is a configuration change. Switching mid-run would drop the
-  `opaque` thinking blocks and the cache, so a fallback, if added, chooses the model at run start and needs a new
+  `opaque` reasoning items and the cached prefix, so a fallback, if added, chooses the model at run start and needs a new
   variable in the core environment schema.

@@ -32,8 +32,8 @@ Act on Connected Data, Oct 15–18, 2026.
   silently dropped — when they expire, when the finding becomes reachable, or when the advisory changes.
 - **Deterministic where it counts.** Tiers and the upgrade plan are computed in code, so the same commit gives the
   same answer. The model chooses tools and explains; it never decides a tier.
-- **One set of tools, any client.** The same ten tools serve the built-in agent and any MCP client, such as Claude
-  Code or Cursor.
+- **One set of tools, any client.** The same ten tools serve the built-in agent and any MCP client, such as Cursor,
+  VS Code, or the OpenAI Codex CLI.
 
 ---
 
@@ -44,7 +44,7 @@ flowchart LR
     repo["GitHub repository"] --> ingest["Ingest: lockfile, imports, owners, OSV"]
     ingest --> db[("FalkorDB graph per repository")]
     db --> tools["Ten typed tools"]
-    tools --> agent["Triage agent (Claude)"]
+    tools --> agent["Triage agent (OpenAI)"]
     tools --> mcp["MCP server"]
     agent --> report["Report with cited paths"]
     agent --> plan["Upgrade plan"]
@@ -66,15 +66,15 @@ flowchart LR
 ## Quickstart (planned)
 
 ```bash
-cp .env.example .env          # set ANTHROPIC_API_KEY, GITHUB_TOKEN, WORKER_TOKEN
+cp .env.example .env          # set OPENAI_API_KEY, GITHUB_TOKEN, WORKER_TOKEN
 docker compose up             # FalkorDB on 6379 with the Browser on 3000, the worker, and the web app
 open http://localhost:3001    # paste a GitHub URL, or pick a pre-loaded demo repository
 ```
 
-Use the same tools from Claude Code:
+Use the same tools from any MCP client, for example the OpenAI Codex CLI:
 
 ```bash
-claude mcp add noderunner -- pnpm --filter @noderunner/mcp start
+codex mcp add noderunner -- pnpm --silent --filter @noderunner/mcp start
 ```
 
 Then ask "which of my alerts are actually reachable?".

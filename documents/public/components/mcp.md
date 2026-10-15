@@ -1,6 +1,6 @@
 # `packages/mcp`
 
-The MCP server that exposes the same ten tools to any MCP client, such as Claude Code or Cursor. It is the second
+The MCP server that exposes the same ten tools to any MCP client, such as Cursor, VS Code, or the OpenAI Codex CLI. It is the second
 front door to [packages/tools](tools.md): it adds no tool logic of its own, and its single responsibility is to
 register the permitted tools with the MCP SDK, bind every call to one server-chosen graph, and record each client
 session as a `Run` so its steps appear in the web UI.
@@ -131,16 +131,16 @@ session is created and logged as `mcp.request.rejected` without the header. Each
 ### README snippet
 
 ```sh
-claude mcp add noderunner -- pnpm --silent --filter @noderunner/mcp start
+codex mcp add noderunner -- pnpm --silent --filter @noderunner/mcp start
 ```
 
-`FALKORDB_URL` and `MCP_GRAPH` come from the root `.env`, or are passed with `claude mcp add -e NAME=value`; the
+`FALKORDB_URL` and `MCP_GRAPH` come from the root `.env`, or are passed with `codex mcp add --env NAME=value`; the
 command runs from the repository root. `node packages/mcp/dist/main.js` is the equivalent without pnpm.
 
 ### Demo moment
 
-In Claude Code, connected to the demo repository's graph with the default, read-only settings, ask "which of my
-alerts are actually reachable?". Claude Code chooses `reachability`, a `derive` tool shown by default, from the same
+In the Codex CLI, connected to the demo repository's graph with the default, read-only settings, ask "which of my
+alerts are actually reachable?". The client's model chooses `reachability`, a `derive` tool shown by default, from the same
 registry the triage agent uses, answers from the same tier query, and the web app shows a new run with agent `mcp`
 whose step highlights the same paths. This is the Track 1 "tool selection through MCP" with no second
 implementation.
