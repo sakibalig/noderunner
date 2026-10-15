@@ -21,7 +21,10 @@ export const RunEvent = z.discriminatedUnion("type", [
     type: z.literal("run.started"),
     runId: RunId,
     agent: Agent,
-    model: z.string().nullable().describe("The model id; null for mcp and ui runs"),
+    model: z
+      .string()
+      .nullable()
+      .describe("<provider>/<model>, such as openai/gpt-5; null for mcp and ui runs"),
   }),
   z.object({
     type: z.literal("step.started"),

@@ -50,12 +50,14 @@ type Block =
 
 type Turn = { stop: "tool_use" | "end" | "limit" | "refusal"; content: Block[];
               usage: { input: number; output: number; cached: number } };
+// usage.input includes cached tokens; usage.output includes reasoning tokens
 
-interface Model { readonly provider: Provider; turn(request, onText, signal): Promise<Turn> }
+interface Model { turn(request, onText, signal): Promise<Turn> }
 ```
 
-Tool input schemas use only objects, strings, numbers, booleans, enums, and arrays, with no unions or `$ref`, which
-is the subset all three providers accept.
+`tool_result` blocks follow the order of the `tool_use` blocks they answer, because Gemini matches results by name
+and position. Tool input schemas use only objects, strings, numbers, booleans, enums, and arrays, with no unions or
+`$ref`, which is the subset all three providers accept.
 
 ## Adapters
 
@@ -77,14 +79,20 @@ with an actionable message, never at the first run.
 | System prompt | `instructions` | `system` | `systemInstruction` |
 | Hidden reasoning | encrypted reasoning items with `store: false` → `opaque` | thinking blocks → `opaque` | thought signatures on parts → `carry` on `text` and `tool_use` |
 | Tool result | `function_call_output` by `call_id` | `tool_result` by `tool_use_id` | `functionResponse` by `name` |
-| Caching | automatic for a stable prefix | `cache_control` on the system prompt and the last tool | implicit caching |
-| `limit` | incomplete for `max_output_tokens` | `stop_reason: max_tokens` | `finishReason: MAX_TOKENS` |
-| `refusal` | refusal content | `stop_reason: refusal` | `finishReason: SAFETY` |
-| Cached tokens | `usage.input_tokens_details.cached_tokens` | `usage.cache_read_input_tokens` | `usageMetadata.cachedContentTokenCount` |
+| Caching | automatic for a stable prefix | `cache_control` on the last tool and on the last message, so the growing history is cached too | implicit caching |
+| `end` | completed with no function call | `stop_reason: end_turn` or `stop_sequence` | `finishReason: STOP` with no function call |
+| `limit` | incomplete for `max_output_tokens` | `stop_reason: max_tokens` or `model_context_window_exceeded` | `finishReason: MAX_TOKENS` |
+| `refusal` | refusal content | `stop_reason: refusal` | `finishReason` `SAFETY`, `RECITATION`, `PROHIBITED_CONTENT`, `BLOCKLIST`, `SPII`, or `promptFeedback.blockReason` with no candidate |
+| Any other ending | a failed or unrecognised response | an unrecognised `stop_reason` | `MALFORMED_FUNCTION_CALL`, `OTHER`, or an unrecognised reason |
+| `usage.input` | `input_tokens` | `input_tokens + cache_read_input_tokens + cache_creation_input_tokens` | `promptTokenCount` |
+| `usage.cached` | `input_tokens_details.cached_tokens` | `cache_read_input_tokens` | `cachedContentTokenCount` |
+| `usage.output` | `output_tokens` | `output_tokens` | `candidatesTokenCount + thoughtsTokenCount` |
 
-An adapter drops any `carry` from another provider, so a recorded run made on one provider replays on another
-without sending foreign reasoning. Every adapter keeps the system prompt and tool list free of run-specific text, so
-the cached prefix is shared across runs. SDK retries apply; after them a failure is `upstream`.
+Any other ending is an `upstream` failure, never a guessed stop. An adapter sends only `carry` and `opaque` blocks
+tagged with its own provider and drops the rest; this matters when a conversation is replayed live on a different
+provider, while `recorded.ts` itself makes no call. Every adapter keeps the system prompt and tool list free of
+run-specific text, so the cached prefix is shared across runs. SDK retries apply; after them a failure is
+`upstream`.
 
 ## Tests
 

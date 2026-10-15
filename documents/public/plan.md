@@ -185,7 +185,7 @@ If a day's exit condition is missed at the evening call, cut the next morning in
 | D13 | Fill one of the two empty team seats with someone for video or design | Both | **Open** |
 | D14 | Where the sandbox runs on the hosted build. Fly.io and Railway give the worker no Docker daemon. Options: a second machine with Docker; npm as an unprivileged child process in a temporary directory holding only the two package files; or regenerate locally and ship from a laptop for the demo | Both | **Open** — recommended: the child process, since `--ignore-scripts` and the absent repository code carry the safety, not the container |
 | D15 | Whether any visitor to the hosted build may approve and ship. The token is limited to the demo forks | Both | **Open** — recommended: gate approve and ship behind a demo passphrase |
-| D16 | The LLM provider | Both | **Resolved** on Oct 15: OpenAI through the `openai` SDK and the Responses API, `gpt-5` by default and `gpt-5-mini` as the fallback; the `Model` port keeps the agent loop provider-neutral |
+| D16 | The LLM provider | Both | **Superseded by D17** — was, on Oct 15: OpenAI through the `openai` SDK and the Responses API, `gpt-5` by default and `gpt-5-mini` as the fallback; the `Model` port keeps the agent loop provider-neutral |
 | D17 | Vendor-neutral LLM providers | Sakib | **Resolved** on Oct 15: one provider per deployment via `LLM_PROVIDER`; the port supports OpenAI, Anthropic, and Gemini; only the OpenAI adapter is built before the deadline; one hand-written adapter per provider ([llm.md](components/llm.md)) |
 
 ## 9. Risks

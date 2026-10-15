@@ -17,6 +17,7 @@ export type Block =
       readonly input: Json;
       readonly carry?: Carry;
     }
+  /** One per tool call, in the same order as the calls; Gemini matches results by name and position. */
   | {
       readonly type: "tool_result";
       readonly toolUseId: string;
@@ -31,6 +32,10 @@ export type Message = { readonly role: "user" | "assistant"; readonly content: r
 /** A tool as a model sees it; `schema` uses only objects, strings, numbers, booleans, enums, and arrays. */
 export type ModelTool = { readonly name: string; readonly description: string; readonly schema: Json };
 
+/**
+ * `input` counts every input token, cached ones included; `cached` is the cached part; `output` includes reasoning.
+ * Each adapter normalises its provider's counts to this (see llm.md).
+ */
 export type Turn = {
   readonly stop: "tool_use" | "end" | "limit" | "refusal";
   readonly content: readonly Block[];
@@ -39,7 +44,6 @@ export type Turn = {
 
 /** One provider behind one interface; the adapter owns caching, schema conversion, and stop mapping. */
 export interface Model {
-  readonly provider: Provider;
   turn(
     request: {
       readonly system: string;

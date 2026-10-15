@@ -75,4 +75,29 @@ describe("parseEnv", () => {
       parseEnv("worker", { ...noOpenai, LLM_PROVIDER: "gemini", GEMINI_API_KEY: "g" }).LLM_PROVIDER,
     ).toBe("gemini");
   });
+
+  it("names the missing key together with every other bad variable", () => {
+    const { OPENAI_API_KEY: _, WORKER_TOKEN: __, ...bad } = worker;
+    try {
+      parseEnv("worker", { ...bad, LLM_PROVIDER: "anthropic" });
+      expect.unreachable();
+    } catch (error) {
+      expect((error as EnvError).names).toEqual(["ANTHROPIC_API_KEY", "WORKER_TOKEN"]);
+    }
+  });
+
+  it("requires the key for eval and not for mcp or web", () => {
+    const evalEnv = { FALKORDB_URL: "redis://localhost:6379", LLM_PROVIDER: "gemini" };
+    expect(() => parseEnv("eval", evalEnv)).toThrow(EnvError);
+    expect(
+      parseEnv("mcp", { FALKORDB_URL: "redis://localhost:6379", MCP_GRAPH: "repo:acme/api" }).MCP_GRAPH,
+    ).toBe("repo:acme/api");
+    expect(parseEnv("web", { WORKER_URL: "http://localhost:8787", WORKER_TOKEN: token }).WORKER_URL).toBe(
+      "http://localhost:8787",
+    );
+  });
+
+  it("treats a blank LLM_MODEL as unset", () => {
+    expect(parseEnv("worker", { ...worker, LLM_MODEL: "" }).LLM_MODEL).toBeUndefined();
+  });
 });

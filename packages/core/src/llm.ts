@@ -1,4 +1,6 @@
 import { z } from "zod";
+import type { Env } from "./env.ts";
+import { EnvError } from "./errors.ts";
 
 export const Provider = z
   .enum(["openai", "anthropic", "gemini"])
@@ -12,7 +14,6 @@ export const defaultModels: Readonly<Record<Provider, string>> = {
   gemini: "gemini-3.1-pro-preview",
 };
 
-/** The environment variable that holds each provider's key. */
 export const keyNames: Readonly<Record<Provider, "OPENAI_API_KEY" | "ANTHROPIC_API_KEY" | "GEMINI_API_KEY">> =
   {
     openai: "OPENAI_API_KEY",
@@ -20,25 +21,24 @@ export const keyNames: Readonly<Record<Provider, "OPENAI_API_KEY" | "ANTHROPIC_A
     gemini: "GEMINI_API_KEY",
   };
 
-export type LlmEnv = {
-  readonly LLM_PROVIDER: Provider;
-  readonly LLM_MODEL?: string | undefined;
-  readonly OPENAI_API_KEY?: string | undefined;
-  readonly ANTHROPIC_API_KEY?: string | undefined;
-  readonly GEMINI_API_KEY?: string | undefined;
-};
+type LlmEnv = Pick<
+  Env<"worker">,
+  "LLM_PROVIDER" | "LLM_MODEL" | "OPENAI_API_KEY" | "ANTHROPIC_API_KEY" | "GEMINI_API_KEY"
+>;
 
-/** The deployment's provider, model, and key; `id` is `<provider>/<model>`, as recorded on runs. */
-export type Llm = {
-  readonly provider: Provider;
-  readonly model: string;
-  readonly id: string;
-  readonly key: string;
-};
+/** The deployment's provider and model; safe to log. `id` is `<provider>/<model>`, as recorded on runs. */
+export type Llm = { readonly provider: Provider; readonly model: string; readonly id: string };
 
-/** Reads the LLM settings from a parsed environment, whose schema already required the selected key. */
 export function llmConfig(env: LlmEnv): Llm {
   const provider = env.LLM_PROVIDER;
   const model = env.LLM_MODEL ?? defaultModels[provider];
-  return { provider, model, id: `${provider}/${model}`, key: env[keyNames[provider]] ?? "" };
+  return { provider, model, id: `${provider}/${model}` };
+}
+
+/** The selected provider's key, kept apart from the loggable config. @throws EnvError when it is unset. */
+export function llmKey(env: LlmEnv): string {
+  const name = keyNames[env.LLM_PROVIDER];
+  const key = env[name];
+  if (key === undefined) throw new EnvError([name]);
+  return key;
 }

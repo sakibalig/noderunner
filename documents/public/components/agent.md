@@ -18,8 +18,8 @@ parser, the correction round, and the step cap. It writes the run's end state on
 It does not own the Run API, the queue, the event buffer, or the creation of the `Run` node ([worker](worker.md)),
 the tools themselves ([tools](tools.md)), the baseline-only tools `search_files` and `read_file`, which live in
 `packages/tools/src/baseline/` (R18), logging of `tool.call.*` events, which the worker does from the step hooks
-(R17), or any LLM SDK, which lives only in the provider adapters behind the `Model` port ([llm](llm.md)). It never reads
-`process.env`: the model id, the token, and the limits arrive from the composition root.
+(R17), or any LLM SDK, which lives only in the provider adapters behind the `Model` port ([llm](llm.md)). It never
+reads `process.env`: the model id, the token, and the limits arrive from the composition root.
 
 ## Interface
 
@@ -60,14 +60,15 @@ export type Verdict = { readonly ok: true } | { readonly ok: false; readonly pro
 export function validateReport(agent: AgentKind, report: string, steps: readonly StepRecord[]): Verdict;
 ```
 
-The loop drives the `Model` port exactly as [core](core.md#ports) states it: `turn` takes the system prompt, the tool
-specs, the whole message history, and `maxTokens`, and returns one `Turn` whose `stop` is `tool_use`, `end`,
+The loop drives the `Model` port exactly as [core](core.md#ports) states it: `turn` takes the system prompt, the
+tool specs, the whole message history, and `maxTokens`, and returns one `Turn` whose `stop` is `tool_use`, `end`,
 `limit`, or `refusal`, with its content blocks and its token usage. The loop owns the history as core `Message`s;
-an `opaque` block, which carries a reasoning item, is appended back exactly as received and never read (R15). Two
-adapters implement the port today: `adapters/model/openai.ts` over the `openai` SDK, and `adapters/model/recorded.ts`, which
-replays a zod-parsed JSON file of `Turn`s so a recorded run can stand in for the live model in tests, in the eval,
-and when the network fails. Limits come from `limits` in core: `runCalls` 15 and `maxTokens` 16,000. Local named
-constants: `CORRECTIONS = 1`, `ORIGIN_CALLS = 3` (the prompt's limit on `introduced_by` calls).
+every block, including `opaque` reasoning and any `carry` on text or tool calls, is appended back exactly as
+received and never read (R15). Two adapters implement the port today: `adapters/model/openai.ts` over the `openai`
+SDK, and `adapters/model/recorded.ts`, which replays a zod-parsed JSON file of `Turn`s so a recorded run can stand
+in for the live model in tests, in the eval, and when the network fails. Limits come from `limits` in core:
+`runCalls` 15 and `maxTokens` 16,000. Local named constants: `CORRECTIONS = 1`, `ORIGIN_CALLS = 3` (the prompt's
+limit on `introduced_by` calls).
 
 ## Behaviour
 
@@ -114,20 +115,20 @@ A capped run keeps the last text the model produced as its report, validated onc
 
 One of the three provider adapters in [llm](llm.md); Anthropic and Gemini follow the same mapping table there.
 
-
-`responses.stream` from the `openai` SDK with `model` from `llmConfig(env).model` (`gpt-5` by default; any cheaper model through
-`LLM_MODEL`), `max_output_tokens` from `limits.maxTokens` (16,000), the system prompt as `instructions`, and each tool as
-a `function` tool whose `parameters` is the zod schema converted with `z.toJSONSchema`. `strict` stays off, because
-strict function schemas require every property to be present and the tool inputs have optional fields. Requests run
-with `store: false` and `include: ["reasoning.encrypted_content"]`, so no conversation is kept on OpenAI's side and
-each reasoning item comes back encrypted; the adapter maps it to `{ type: "opaque", carry: { provider: "openai", raw } }` and sends `raw` back
-unchanged in the next request's `input` (R15). Reasoning counts toward `max_output_tokens`, which is why the LLD's
-4,096 is raised to 16,000. A `function_call` item maps to `tool_use`, a `function_call_output` input item carries
-each tool result by `call_id`, a completed response with no function call maps to `end`, an incomplete response
-for `max_output_tokens` maps to `limit`, and a `refusal` content item maps to `refusal`. Prompt caching is automatic
-for a repeated prefix of 1,024 tokens or more, so the instructions and tools carry no run id, repository, or time;
-those go in the kickoff message, and hits are confirmed from `usage.input_tokens_details.cached_tokens` in the
-`agent.model.turn` event. `tool_choice` stays `auto`. The SDK's own retries apply; after them a failure is `upstream`.
+`responses.stream` from the `openai` SDK with `model` from `llmConfig(env).model` (`gpt-5` by default; any cheaper
+model through `LLM_MODEL`), `max_output_tokens` from `limits.maxTokens` (16,000), the system prompt as
+`instructions`, and each tool as a `function` tool whose `parameters` is the zod schema converted with
+`z.toJSONSchema`. `strict` stays off, because strict function schemas require every property to be present and the
+tool inputs have optional fields. Requests run with `store: false` and `include: ["reasoning.encrypted_content"]`,
+so no conversation is kept on OpenAI's side and each reasoning item comes back encrypted; the adapter maps it to `{
+type: "opaque", carry: { provider: "openai", raw } }` and sends `raw` back unchanged in the next request's `input`
+(R15). Reasoning counts toward `max_output_tokens`, which is why the LLD's 4,096 is raised to 16,000. A
+`function_call` item maps to `tool_use`, a `function_call_output` input item carries each tool result by `call_id`,
+a completed response with no function call maps to `end`, an incomplete response for `max_output_tokens` maps to
+`limit`, and a `refusal` content item maps to `refusal`. Prompt caching is automatic for a repeated prefix of 1,024
+tokens or more, so the instructions and tools carry no run id, repository, or time; those go in the kickoff message,
+and hits are confirmed from `usage.input_tokens_details.cached_tokens` in the `agent.model.turn` event.
+`tool_choice` stays `auto`. The SDK's own retries apply; after them a failure is `upstream`.
 
 ### Triage system prompt, outline
 
@@ -256,6 +257,6 @@ adapter with scripted `tool_use` turns; `Clock` and `Ids` are fixed.
 Decisions are tracked in the [delivery plan](../plan.md#8-decisions).
 
 - **D8** (proposed): the second `recall_decisions` in the default plan (C2).
-- **In-run model fallback.** Today the fallback is a configuration change. Switching mid-run would drop the
-  `opaque` reasoning items and the cached prefix, so a fallback, if added, chooses the model at run start and needs a new
+- **In-run model fallback.** Today the fallback is a configuration change. Switching mid-run would drop the `opaque`
+  reasoning items and the cached prefix, so a fallback, if added, chooses the model at run start and needs a new
   variable in the core environment schema.

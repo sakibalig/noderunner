@@ -11,7 +11,9 @@ const fields = {
   FALKORDB_URL: z
     .preprocess(blank, z.url({ protocol: /^rediss?$/ }))
     .describe("FalkorDB connection URL; secret"),
-  LLM_PROVIDER: z.preprocess(blank, Provider.default("openai")),
+  LLM_PROVIDER: z
+    .preprocess(blank, Provider.default("openai"))
+    .describe("The LLM provider of this deployment"),
   LLM_MODEL: z
     .preprocess(blank, z.string().min(1).optional())
     .describe("Model id; the provider's default when unset"),
@@ -53,38 +55,23 @@ const fields = {
     .describe("pino log level"),
 };
 
-function requireKey(
-  env: { readonly LLM_PROVIDER: Provider } & Readonly<Record<string, unknown>>,
-  ctx: z.RefinementCtx,
-) {
-  const name = keyNames[env.LLM_PROVIDER];
-  if (env[name] === undefined)
-    ctx.addIssue({
-      code: "custom",
-      path: [name],
-      message: `required when LLM_PROVIDER is ${env.LLM_PROVIDER}`,
-    });
-}
-
 const surfaces = {
-  worker: z
-    .object({
-      FALKORDB_URL: fields.FALKORDB_URL,
-      LLM_PROVIDER: fields.LLM_PROVIDER,
-      LLM_MODEL: fields.LLM_MODEL,
-      OPENAI_API_KEY: fields.OPENAI_API_KEY,
-      ANTHROPIC_API_KEY: fields.ANTHROPIC_API_KEY,
-      GEMINI_API_KEY: fields.GEMINI_API_KEY,
-      GITHUB_TOKEN: fields.GITHUB_TOKEN,
-      PR_TARGET_OWNER: fields.PR_TARGET_OWNER,
-      WORKER_TOKEN: fields.WORKER_TOKEN,
-      PORT: fields.PORT,
-      WEB_ORIGIN: fields.WEB_ORIGIN,
-      SANDBOX_IMAGE: fields.SANDBOX_IMAGE,
-      CACHE_DIR: fields.CACHE_DIR,
-      LOG_LEVEL: fields.LOG_LEVEL,
-    })
-    .superRefine(requireKey),
+  worker: z.object({
+    FALKORDB_URL: fields.FALKORDB_URL,
+    LLM_PROVIDER: fields.LLM_PROVIDER,
+    LLM_MODEL: fields.LLM_MODEL,
+    OPENAI_API_KEY: fields.OPENAI_API_KEY,
+    ANTHROPIC_API_KEY: fields.ANTHROPIC_API_KEY,
+    GEMINI_API_KEY: fields.GEMINI_API_KEY,
+    GITHUB_TOKEN: fields.GITHUB_TOKEN,
+    PR_TARGET_OWNER: fields.PR_TARGET_OWNER,
+    WORKER_TOKEN: fields.WORKER_TOKEN,
+    PORT: fields.PORT,
+    WEB_ORIGIN: fields.WEB_ORIGIN,
+    SANDBOX_IMAGE: fields.SANDBOX_IMAGE,
+    CACHE_DIR: fields.CACHE_DIR,
+    LOG_LEVEL: fields.LOG_LEVEL,
+  }),
   mcp: z
     .object({
       FALKORDB_URL: fields.FALKORDB_URL,
@@ -99,20 +86,28 @@ const surfaces = {
       message: "required when MCP_HTTP_PORT is set",
     }),
   web: z.object({ WORKER_URL: fields.WORKER_URL, WORKER_TOKEN: fields.WORKER_TOKEN }),
-  eval: z
-    .object({
-      FALKORDB_URL: fields.FALKORDB_URL,
-      LLM_PROVIDER: fields.LLM_PROVIDER,
-      LLM_MODEL: fields.LLM_MODEL,
-      OPENAI_API_KEY: fields.OPENAI_API_KEY,
-      ANTHROPIC_API_KEY: fields.ANTHROPIC_API_KEY,
-      GEMINI_API_KEY: fields.GEMINI_API_KEY,
-      CACHE_DIR: fields.CACHE_DIR,
-    })
-    .superRefine(requireKey),
+  eval: z.object({
+    FALKORDB_URL: fields.FALKORDB_URL,
+    LLM_PROVIDER: fields.LLM_PROVIDER,
+    LLM_MODEL: fields.LLM_MODEL,
+    OPENAI_API_KEY: fields.OPENAI_API_KEY,
+    ANTHROPIC_API_KEY: fields.ANTHROPIC_API_KEY,
+    GEMINI_API_KEY: fields.GEMINI_API_KEY,
+    CACHE_DIR: fields.CACHE_DIR,
+  }),
 };
 
 export type Surface = keyof typeof surfaces;
+
+const needsKey: ReadonlySet<Surface> = new Set(["worker", "eval"]);
+
+/** The selected provider's key name when it is unset; checked apart from the schema so it is reported with every other error. */
+function missingKey(source: Readonly<Record<string, string | undefined>>): string | null {
+  const provider = fields.LLM_PROVIDER.safeParse(source.LLM_PROVIDER);
+  if (!provider.success) return null;
+  const name = keyNames[provider.data];
+  return source[name] ? null : name;
+}
 
 export type Env<S extends Surface> = z.infer<(typeof surfaces)[S]>;
 
@@ -122,9 +117,11 @@ export function parseEnv<S extends Surface>(
   source: Readonly<Record<string, string | undefined>>,
 ): Env<S> {
   const parsed = surfaces[surface].safeParse(source);
-  if (parsed.success) return parsed.data as Env<S>;
-  const names = [
-    ...new Set(parsed.error.issues.map((issue) => String(issue.path[0] ?? "environment"))),
-  ].sort();
-  throw new EnvError(names);
+  const names = new Set(
+    parsed.success ? [] : parsed.error.issues.map((issue) => String(issue.path[0] ?? "environment")),
+  );
+  const key = needsKey.has(surface) ? missingKey(source) : null;
+  if (key !== null) names.add(key);
+  if (parsed.success && names.size === 0) return parsed.data as Env<S>;
+  throw new EnvError([...names].sort());
 }
