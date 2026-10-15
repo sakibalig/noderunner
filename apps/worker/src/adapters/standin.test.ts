@@ -35,3 +35,16 @@ describe("Standin", () => {
     ).rejects.toThrow();
   });
 });
+
+describe("Standin demo repository", () => {
+  it("serves acme/api with its funnel and filtered findings before anything is ingested", async () => {
+    const standin = new Standin({ now: () => 0 }, 0);
+    const repo = { owner: "acme", name: "api" };
+    expect((await standin.list()).map((entry) => entry.repoId)).toEqual(["acme/api"]);
+    expect((await standin.summary(repo))?.funnel).toEqual({ total: 3, production: 2, reachable: 1, open: 1 });
+    expect((await standin.findings(repo, { tier: "import-reachable" }))?.map((f) => f.package)).toEqual([
+      "qs",
+    ]);
+    expect(await standin.findings({ owner: "acme", name: "none" }, {})).toBeNull();
+  });
+});

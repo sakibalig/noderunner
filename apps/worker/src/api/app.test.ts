@@ -1,4 +1,4 @@
-import { Fault, graphName, type IngestReport, type RepoRef, type Stage } from "@noderunner/core";
+import { Fault, findingKey, graphName, type IngestReport, type RepoRef, type Stage } from "@noderunner/core";
 import { describe, expect, it } from "vitest";
 import type { Catalog, Ingester } from "../jobs/catalog.ts";
 import { Limiter } from "../jobs/limit.ts";
@@ -60,6 +60,24 @@ function setup(options: Setup = {}) {
       ingested.includes(`${repo.owner}/${repo.name}`)
         ? { funnel: { total: 3, production: 2, reachable: 1, open: 1 }, counts, lastRun: null }
         : null,
+    findings: async (repo, filter) => {
+      if (!ingested.includes(`${repo.owner}/${repo.name}`)) return null;
+      const all = [
+        { tier: "import-reachable" as const, status: "open" as const },
+        { tier: "dev-only" as const, status: "waived" as const },
+      ].map(({ tier, status }, i) => ({
+        key: findingKey(`GHSA-${i}`, "qs"),
+        vulnId: `GHSA-${i}`,
+        package: "qs",
+        installs: [],
+        severity: "high" as const,
+        tier,
+        status,
+      }));
+      return all.filter(
+        (f) => (filter.tier ?? f.tier) === f.tier && (filter.status ?? f.status) === f.status,
+      );
+    },
   };
   let next = 0;
   const clock = { now: () => 0 };
@@ -341,5 +359,36 @@ describe("GET /repos and summary", () => {
 describe("unknown routes", () => {
   it("answer missing", async () => {
     expect((await setup().app.request("/nope", { headers: auth })).status).toBe(404);
+  });
+});
+
+describe("GET /repos/:owner/:name/findings", () => {
+  async function ingested() {
+    const { app } = setup();
+    const { jobId } = await start(app);
+    await stream(app, jobId);
+    return app;
+  }
+  const keys = async (res: Response) =>
+    ((await res.json()) as { findings: { vulnId: string }[] }).findings.map((f) => f.vulnId);
+
+  it("lists findings and filters by tier and status", async () => {
+    const app = await ingested();
+    expect(await keys(await app.request("/repos/acme/api/findings", { headers: auth }))).toEqual([
+      "GHSA-0",
+      "GHSA-1",
+    ]);
+    expect(
+      await keys(await app.request("/repos/acme/api/findings?tier=dev-only", { headers: auth })),
+    ).toEqual(["GHSA-1"]);
+    expect(await keys(await app.request("/repos/acme/api/findings?status=open", { headers: auth }))).toEqual([
+      "GHSA-0",
+    ]);
+  });
+
+  it("answers invalid for an unknown tier and missing for an unknown repository", async () => {
+    const app = await ingested();
+    expect((await app.request("/repos/acme/api/findings?tier=bogus", { headers: auth })).status).toBe(400);
+    expect((await app.request("/repos/acme/none/findings", { headers: auth })).status).toBe(404);
   });
 });

@@ -1,6 +1,6 @@
 # `apps/web`
 
-The web app is the Next.js 15 App Router site judges and developers use: the repository page with the funnel, the
+The web app is the Next.js 16 App Router site judges and developers use: the repository page with the funnel, the
 run view with its step timeline, graph canvas, and report, the finding drawer, and the compare page. Its single
 responsibility is presentation: it renders worker data and forwards user actions to the worker through its own
 `/api/*` proxy, and it holds no domain logic beyond a pure reducer over `RunEvent`.
@@ -32,15 +32,20 @@ framework requires; every other module uses named exports.
 ## Layout
 
 ```
-apps/web/
-  app/          layout, the four pages, and api/[...path]/route.ts
+apps/web/src/
+  app/          layout, the four pages, icon.svg, and api/[...path]/route.ts
   components/   intake.tsx, cards.tsx, progress.tsx, funnel.tsx, alerts.tsx, runs.tsx, launch.tsx,
                 timeline.tsx, query.tsx, canvas.tsx, report.tsx, plan.tsx, reviewers.tsx, actions.tsx, drawer.tsx
   state/        view.ts (state and actions), reducer.ts, graph.ts (evidence union and cap),
                 citations.ts, style.ts (Cytoscape stylesheet), stream.ts (SSE subscription)
-  server/       config.ts (parses WORKER_URL and WORKER_TOKEN once), worker.ts (typed worker client),
-                routes.ts (proxy allowlist)
+  server/       config.ts (parses WORKER_URL and WORKER_TOKEN once), worker.ts (typed worker client for server
+                components), proxy.ts (forwarding), routes.ts (proxy allowlist)
+  styles/       globals.css
 ```
+
+Pure logic (funnel widths, the reducer) lives in `.ts` files under `state/` so Vitest tests it without a JSX
+transform. Until `packages/ingest` lands, the worker's in-memory stand-in serves the recorded `acme/api` demo
+repository, so every page reads live worker data from the start and nothing in the web app is a fixture.
 
 `server/` is imported only by server components and route handlers, so the token cannot reach a client bundle.
 

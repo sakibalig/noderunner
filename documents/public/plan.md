@@ -86,9 +86,9 @@ Exit: one real repository in the graph, golden queries G1 to G5 correct.
 | T05 | Ingest stage 2: lockfile parser, Node resolution, writes | Shaukat | 3 | T04 | Nested-lockfile test passes; G1 matches | todo |
 | T06 | Ingest stage 3: imports, resolution, classification, `LOADS` | Shaukat | 3 | T04 | Syntax-form tests pass; G4 correct | todo |
 | T07 | Ingest stage 4: OSV, advisory cache, `isAffected`, Findings | Shaukat | 2.5 | T05 | G2 matches `npm audit` within explained differences | todo |
-| T08 | Ingest stage 5: CODEOWNERS and git history | Sakib | 2 | T03 | G5 correct on demo repository 1 | in review (feat/t08-people) |
+| T08 | Ingest stage 5: CODEOWNERS and git history | Sakib | 2 | T03 | G5 correct on demo repository 1 | done (PR merged) |
 | T09 | Worker: Hono, `/healthz`, `POST /repos` with job queue and job SSE, `GET /repos`, `summary` | Sakib | 3 | T02 | Ingest triggered over HTTP with live progress | in review (feat/t09-worker) |
-| T10 | Web shell: home, repository page, funnel and alert table on fixture data | Sakib | 3 | T02 | Pages render from fixtures | todo |
+| T10 | Web shell: home, repository page, funnel and alert table on fixture data | Sakib | 3 | T02 | Pages render from fixtures | in review (feat/t10-web) |
 | T11 | Golden queries G1 to G5 checked by hand | Shaukat | 1 | T05–T07 | Day 1 exit met | todo |
 
 ### Fri Oct 16 — Day 2, the agent works from the command line
