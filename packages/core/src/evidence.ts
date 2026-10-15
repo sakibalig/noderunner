@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { Json } from "./json.ts";
+import { limits } from "./limits.ts";
 
 export const EvNode = z.object({
   id: z.number().int().nonnegative().describe("The FalkorDB internal id, valid within the current snapshot"),
@@ -23,8 +24,8 @@ export type EvEdge = z.infer<typeof EvEdge>;
 
 /** What one tool call touched; goes to the UI and the graph, never to the model. */
 export const Evidence = z.object({
-  nodes: z.array(EvNode).describe("Touched nodes, at most limits.evidenceNodes"),
-  edges: z.array(EvEdge).describe("Touched edges, at most limits.evidenceEdges"),
+  nodes: z.array(EvNode).max(limits.evidenceNodes).describe("Touched nodes"),
+  edges: z.array(EvEdge).max(limits.evidenceEdges).describe("Touched edges"),
   cypher: z.array(z.string()).describe("The exact query texts run"),
 });
 export type Evidence = z.infer<typeof Evidence>;

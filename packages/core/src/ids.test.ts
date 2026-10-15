@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { RunId } from "./ids.ts";
-import { findingKey, graphName, parseFindingKey, purl, verifyName } from "./ids.ts";
+import { findingKey, graphName, LockPath, parseFindingKey, purl, verifyName } from "./ids.ts";
 
 describe("graphName", () => {
   it("lowercases owner and name into a repo graph", () => {
@@ -39,5 +39,17 @@ describe("purl", () => {
   });
   it("leaves an unscoped name as it is", () => {
     expect(purl("qs", "6.7.0")).toBe("pkg:npm/qs@6.7.0");
+  });
+});
+
+describe("LockPath", () => {
+  it.each(["node_modules/qs", "node_modules/a/node_modules/@scope/b", "packages/web/node_modules/react"])(
+    "accepts %s",
+    (path) => {
+      expect(LockPath.safeParse(path).success).toBe(true);
+    },
+  );
+  it.each(["", "qs", "packages/web"])("rejects %j", (path) => {
+    expect(LockPath.safeParse(path).success).toBe(false);
   });
 });

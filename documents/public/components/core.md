@@ -253,7 +253,7 @@ validates only what it reads; empty strings count as unset. It is parsed once in
 
 ## Failures
 
-`errors.ts` exports `ErrorCode`, the union of the ten codes in [errors.json](../../../contracts/api/errors.json),
+`errors.ts` exports `ErrorCode`, the union of the eleven codes in [errors.json](../../../contracts/api/errors.json),
 and a table of status and retryability that a test keeps equal to the file. It also exports the abstract base every
 package error extends:
 
