@@ -1,6 +1,6 @@
 import type { Json } from "../json.ts";
 
-/** `opaque` holds a thinking block, returned to the model unchanged. */
+/** `opaque` holds a reasoning item, returned to the model unchanged. */
 export type Block =
   | { readonly type: "text"; readonly text: string }
   | { readonly type: "tool_use"; readonly id: string; readonly name: string; readonly input: Json }

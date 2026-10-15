@@ -7,7 +7,7 @@ README, the blog post, and the video.
 
 | Owner | Tasks | Layer | Depends on |
 | --- | --- | --- | --- |
-| Shaukat (labels, runner), Sakib (baseline tools) | T24 | Evaluation, with its own composition root | `apps/worker` (`runAgent`), `packages/ingest`, `packages/executor` (`verify`), `packages/core`; real FalkorDB, the Claude API, Docker |
+| Shaukat (labels, runner), Sakib (baseline tools) | T24 | Evaluation, with its own composition root | `apps/worker` (`runAgent`), `packages/ingest`, `packages/executor` (`verify`), `packages/core`; real FalkorDB, the OpenAI API, Docker |
 
 ## Responsibility
 
@@ -76,7 +76,7 @@ both wrap file text as quoted data. Same model, same system goal, same report fo
 
 ## Runner
 
-`pnpm eval` runs `eval/src/main.ts`, which parses its configuration (`FALKORDB_URL`, `ANTHROPIC_API_KEY`, `MODEL`,
+`pnpm eval` runs `eval/src/main.ts`, which parses its configuration (`FALKORDB_URL`, `OPENAI_API_KEY`, `MODEL`,
 `GITHUB_TOKEN`) through the core env schema and builds the same adapters as the worker.
 
 1. Refuse to start if `FALKORDB_URL` is the hosted instance, or if any target graph holds a `Decision` node, since

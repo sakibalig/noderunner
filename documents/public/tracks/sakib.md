@@ -67,9 +67,9 @@ flowchart LR
    segment of the demo (D6). Record them in `eval/repos.json` once T01 exists, and tell Shaukat at once: his T04
    needs demo repository 1.
 2. If S4 is not done: a fine-grained GitHub token limited to the three forks, with contents and pull request write
-   access; a FalkorDB Cloud account; an Anthropic API key.
-3. If S3 is not done: a throwaway script that runs one Claude tool-use loop with one fake tool and streaming, and a
-   hello-world MCP server added to Claude Code. Keep it outside the repository; it exists to remove surprises from T16
+   access; a FalkorDB Cloud account; an OpenAI API key.
+3. If S3 is not done: a throwaway script that runs one OpenAI tool-calling loop with one fake tool and streaming, and a
+   hello-world MCP server added to an MCP client such as the Codex CLI. Keep it outside the repository; it exists to remove surprises from T16
    and T18.
 4. Read the Rules and Schedule tabs and the FAQ (D7): judging weights, whether a hosted deployment is required, one
    track or several, and what the submission form asks for. Write the answers into D7 in the delivery plan.
@@ -184,8 +184,8 @@ and `?replay=1`, `GET /repos/:owner/:name/subgraph`, the findings routes, `POST 
 **T16 — the triage agent (5 h).** Start against mock tools that return the fixture's results, so the loop is
 finished before Shaukat's T12 lands, then switch to the real toolbox. From [agent.md](../components/agent.md):
 
-1. The Claude adapter behind the `Model` port: streaming, `max_tokens` 16,000, `opaque` thinking blocks passed back
-   unchanged, the `refusal` stop, prompt caching on the system prompt and the last tool definition.
+1. The OpenAI adapter behind the `Model` port: streaming Responses API, `max_output_tokens` 16,000, `opaque` reasoning items passed back
+   unchanged, the `refusal` stop, `store: false`, and instructions and tools kept stable for automatic prompt caching.
 2. The loop: sequential tool calls through `callTool` with `StepHooks`, `step.started` from `onStart`, the 15-call
    cap, `message.delta` streaming.
 3. The triage system prompt: the graph is the source of truth; the default plan with `recall_decisions` run again
@@ -206,7 +206,7 @@ live SSE subscription. Done when a live run renders end to end.
 
 **T18 — the MCP server (1.5 h).** Needs Shaukat's T13. Low-level `tools/list` and `tools/call` handlers so a
 malformed call still reaches `callTool`; `read` and `derive` tools by default; one `mcp` run per session capped at
-100 calls; stdio started with `pnpm --silent`; HTTP only with `MCP_TOKEN`. Done when Claude Code answers "which of my
+100 calls; stdio started with `pnpm --silent`; HTTP only with `MCP_TOKEN`. Done when an MCP client answers "which of my
 alerts are actually reachable?" through it.
 
 **Order on Friday:** T15 first in the morning (short, unblocks T17), then T16 against mocks, T17 while waiting for

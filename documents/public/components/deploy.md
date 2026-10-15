@@ -24,8 +24,8 @@ root reads `process.env`. `.env.example` lists names only.
 | Variable | Read by | Secret | Example or default |
 | --- | --- | --- | --- |
 | `FALKORDB_URL` | worker, mcp, eval | Yes; it may carry the FalkorDB password (hosted) | `redis://localhost:6379` |
-| `ANTHROPIC_API_KEY` | worker, eval | Yes | — |
-| `MODEL` | worker, eval | No | `claude-opus-5-5`, the default; `claude-sonnet-5-5` as the fallback |
+| `OPENAI_API_KEY` | worker, eval | Yes | — |
+| `MODEL` | worker, eval | No | `gpt-5`, the default; `gpt-5-mini` as the fallback |
 | `GITHUB_TOKEN` | worker | Yes | Fine-grained, the demo forks only, contents and pull requests write |
 | `PR_TARGET_OWNER` | worker | No | The team account that holds the forks |
 | `WORKER_URL` | web | No, but server-side only | `http://localhost:8787` |
@@ -145,7 +145,7 @@ file instead, where they count as a separate client.
 
 | Failure | Response |
 | --- | --- |
-| `healthz` shows `model: false`, or a run fails with `upstream` | Replay the pre-loaded run with `?replay=1`; if it persists, set `MODEL=claude-sonnet-5-5` in the host's secret store and restart the worker |
+| `healthz` shows `model: false`, or a run fails with `upstream` | Replay the pre-loaded run with `?replay=1`; if it persists, set `MODEL=gpt-5-mini` in the host's secret store and restart the worker |
 | A run is capped or ends `unverified` | Show it as it is if the flag is visible; otherwise replay the pre-loaded run |
 | Ingestion is slow or GitHub fails | Use a pre-loaded repository; do not ingest live |
 | Ship fails with `upstream` or `pr.refused` | Show the refusal and its verification, which is itself a feature; then show the pull request opened in rehearsal |

@@ -5,7 +5,7 @@ import { EnvError } from "./errors.ts";
 const token = "t".repeat(32);
 const worker = {
   FALKORDB_URL: "redis://localhost:6379",
-  ANTHROPIC_API_KEY: "key-value",
+  OPENAI_API_KEY: "key-value",
   GITHUB_TOKEN: "gh-value",
   PR_TARGET_OWNER: "sakibalig",
   WORKER_TOKEN: token,
@@ -16,7 +16,7 @@ describe("parseEnv", () => {
   it("applies defaults for the worker", () => {
     const env = parseEnv("worker", worker);
     expect(env.PORT).toBe(8787);
-    expect(env.MODEL).toBe("claude-opus-5-5");
+    expect(env.MODEL).toBe("gpt-5");
     expect(env.CACHE_DIR).toBe(".cache");
   });
 
@@ -26,7 +26,7 @@ describe("parseEnv", () => {
       ...worker,
       WORKER_TOKEN: undefined,
       FALKORDB_URL: "http://x",
-      ANTHROPIC_API_KEY: secret,
+      OPENAI_API_KEY: secret,
       MODEL: "gpt",
     };
     try {

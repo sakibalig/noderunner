@@ -10,10 +10,8 @@ const fields = {
   FALKORDB_URL: z
     .preprocess(blank, z.url({ protocol: /^rediss?$/ }))
     .describe("FalkorDB connection URL; secret"),
-  ANTHROPIC_API_KEY: text().describe("Claude API key; secret"),
-  MODEL: z
-    .preprocess(blank, z.enum(["claude-opus-5-5", "claude-sonnet-5-5"]).default("claude-opus-5-5"))
-    .describe("The agent's model"),
+  OPENAI_API_KEY: text().describe("OpenAI API key; secret"),
+  MODEL: z.preprocess(blank, z.enum(["gpt-5", "gpt-5-mini"]).default("gpt-5")).describe("The agent's model"),
   GITHUB_TOKEN: text().describe("Fine-grained GitHub token limited to the demo forks; secret"),
   PR_TARGET_OWNER: z
     .preprocess(blank, z.string().regex(/^[A-Za-z0-9-]+$/))
@@ -52,7 +50,7 @@ const fields = {
 const surfaces = {
   worker: z.object({
     FALKORDB_URL: fields.FALKORDB_URL,
-    ANTHROPIC_API_KEY: fields.ANTHROPIC_API_KEY,
+    OPENAI_API_KEY: fields.OPENAI_API_KEY,
     MODEL: fields.MODEL,
     GITHUB_TOKEN: fields.GITHUB_TOKEN,
     PR_TARGET_OWNER: fields.PR_TARGET_OWNER,
@@ -79,7 +77,7 @@ const surfaces = {
   web: z.object({ WORKER_URL: fields.WORKER_URL, WORKER_TOKEN: fields.WORKER_TOKEN }),
   eval: z.object({
     FALKORDB_URL: fields.FALKORDB_URL,
-    ANTHROPIC_API_KEY: fields.ANTHROPIC_API_KEY,
+    OPENAI_API_KEY: fields.OPENAI_API_KEY,
     MODEL: fields.MODEL,
     CACHE_DIR: fields.CACHE_DIR,
   }),

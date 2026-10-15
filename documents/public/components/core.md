@@ -19,7 +19,7 @@ policies `isAffected` and `lowestFixed`, and the recorded fixture run that the U
 
 It does not own any I/O, any Cypher text (that is [graph.md](graph.md)), any adapter, any logging, or any shape that
 only one package reads. It imports no framework, driver, HTTP client, or model SDK, so no `falkordb`,
-`@anthropic-ai/sdk`, `hono`, or `octokit` type appears in a port. `zod` 4 is required because its built-in
+`openai`, `hono`, or `octokit` type appears in a port. `zod` 4 is required because its built-in
 `z.toJSONSchema` produces the JSON Schema the model and MCP clients read, which avoids a second dependency.
 
 ```text
@@ -182,7 +182,7 @@ interface Forge {
 // ports/model.ts, ports/sandbox.ts, ports/clock.ts, ports/ids.ts
 type Block = { type: "text"; text: string } | { type: "tool_use"; id: string; name: string; input: Json }
            | { type: "tool_result"; toolUseId: string; content: string; isError: boolean }
-           | { type: "opaque"; raw: Json };   // R15: thinking blocks, returned to the model unchanged
+           | { type: "opaque"; raw: Json };   // R15: reasoning items, returned to the model unchanged
 type Message = { role: "user" | "assistant"; content: readonly Block[] };
 type Turn = { stop: "tool_use" | "end" | "limit" | "refusal"; content: readonly Block[];
               usage: { input: number; output: number } };
@@ -205,7 +205,7 @@ interface Ids { next(): string }    // a ULID; callers brand it
 | `Registry` | One packument holds every version and its dependencies, so one call is one fetch the planner can count | npm with memory and disk cache | recorded packuments |
 | `Advisories` | OSV batch lookup and full records; the adapter owns chunking (D5) and pagination | OSV HTTP | recorded S2 responses |
 | `Forge` | Ingestion, people, and the executor all reach GitHub; `history` hides the partial clone and returns no e-mail addresses | GitHub API and `git` | recorded tarball and commit list |
-| `Model` | The agent loop and a recorded run replayed in place of the live model | Claude API | recorded turns |
+| `Model` | The agent loop and a recorded run replayed in place of the live model | OpenAI Responses API | recorded turns |
 | `Sandbox` | Lockfile regeneration in a container with `--ignore-scripts` | Docker | a fixed regenerated lockfile |
 | `Clock`, `Ids` | Determinism: no wall clock or random source below the composition root | system clock, `ulid` | fixed sequence |
 
@@ -220,8 +220,8 @@ validates only what it reads; empty strings count as unset. It is parsed once in
 | Variable | Read by | Schema | Secret |
 | --- | --- | --- | --- |
 | `FALKORDB_URL` | worker, mcp, eval | `redis://` or `rediss://` URL; may carry the FalkorDB password | yes |
-| `ANTHROPIC_API_KEY` | worker, eval | non-empty | yes |
-| `MODEL` | worker, eval | `claude-opus-5-5` or `claude-sonnet-5-5`, default the first | no |
+| `OPENAI_API_KEY` | worker, eval | non-empty | yes |
+| `MODEL` | worker, eval | `gpt-5` or `gpt-5-mini`, default the first | no |
 | `GITHUB_TOKEN` | worker | fine-grained token, non-empty | yes |
 | `PR_TARGET_OWNER` | worker | GitHub owner name | no |
 | `WORKER_URL` | web | URL | no |
