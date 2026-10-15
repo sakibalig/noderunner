@@ -139,8 +139,9 @@ owns it, a pinned version in `pnpm-lock.yaml`, and a permissive licence. A vendo
 ## Change discipline
 
 Make the smallest complete change that delivers the task, and implement the whole slice rather than leaving a port
-without the use case that consumes it. Stay within the task and preserve the other owner's work. A change to
-`packages/core` or to a file under [contracts](../../../contracts) is reviewed by the other owner before it merges.
+without the use case that consumes it. Stay within the task and preserve the other owner's work. The author merges
+their own PR once CI passes; a change to `packages/core` or [contracts](../../../contracts) first gets an independent
+review pass and is announced to the other owner.
 Nobody commits directly to `main`. Every change starts from an up-to-date `main` (`git switch main && git pull`)
 on a short-lived branch named `<type>/<task>-<word>`, where the type matches the commit type (`feat/t12-reachability`,
 `fix/t29-replay`, `chore/ci-checks`, `docs/sakib-track`), is pushed to that branch, and reaches `main` through a pull
