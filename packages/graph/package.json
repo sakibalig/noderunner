@@ -5,6 +5,12 @@
   "type": "module",
   "description": "The FalkorDB adapter and every Cypher query",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./cypher": "./src/cypher/index.ts"
+  },
+  "dependencies": {
+    "@noderunner/core": "workspace:*",
+    "falkordb": "6.8.0",
+    "zod": "4.6.7"
   }
 }

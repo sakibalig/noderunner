@@ -67,7 +67,7 @@ updated at each evening call.
 
 | ID | Task | Owner | Hours | Needs | Done when | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| S1 | FalkorDB in Docker; verify `shortestPath`, `algo.pageRank`, read-only queries, indexes, from the Node client | Shaukat | 2.5 | — | Every `VERIFY` in the component designs has an answer (D1–D4) | unknown |
+| S1 | FalkorDB in Docker; verify `shortestPath`, `algo.pageRank`, read-only queries, indexes, from the Node client | Shaukat | 2.5 | — | Every `VERIFY` in the component designs has an answer (D1–D4) | done (D1–D3 resolved) |
 | S2 | OSV `querybatch` and `/vulns` on 5 packages; npm packument shape; batch size limit | Shaukat | 1 | — | Sample responses saved as fixtures (D5) | unknown |
 | S3 | OpenAI tool-calling loop with one fake tool and streaming; MCP hello-world added to an MCP client | Sakib | 2 | — | Both work end to end | unknown |
 | S4 | Pick and fork 3 demo repositories (lockfile v2 or v3, under 1,500 installs, a mix of tiers, CODEOWNERS on one); fine-grained token; FalkorDB Cloud account | Sakib | 2 | — | Repositories listed with pinned commits (D6) | unknown |
@@ -81,7 +81,7 @@ Exit: one real repository in the graph, golden queries G1 to G5 correct.
 | --- | --- | --- | --- | --- | --- | --- |
 | T01 | Monorepo, tsconfig, Biome, Vitest, docker-compose with FalkorDB, `.env.example` | Sakib | 1.5 | — | `pnpm test` and `docker compose up falkordb` work | done (PR merged) |
 | T02 | `packages/core`: types, schemas, events, ports, env loader, fixture run | Sakib | 2 | T01 | Merged by noon | done (PR merged) |
-| T03 | `packages/graph`: connect, query, roQuery, batch, migrate | Shaukat | 1.5 | T01 | Integration test creates and reads nodes | todo |
+| T03 | `packages/graph`: connect, query, roQuery, batch, migrate | Shaukat | 1.5 | T01 | Integration test creates and reads nodes | in review (feat/t03-graph) |
 | T04 | Ingest stage 1: tarball fetch and filter | Shaukat | 1.5 | T03 | Demo repository 1 fetched in under 10 s | todo |
 | T05 | Ingest stage 2: lockfile parser, Node resolution, writes | Shaukat | 3 | T04 | Nested-lockfile test passes; G1 matches | todo |
 | T06 | Ingest stage 3: imports, resolution, classification, `LOADS` | Shaukat | 3 | T04 | Syntax-form tests pass; G4 correct | todo |
@@ -170,9 +170,9 @@ If a day's exit condition is missed at the evening call, cut the next morning in
 
 | # | Decision | Owner | Status |
 | --- | --- | --- | --- |
-| D1 | `shortestPath` placement inside `MATCH`, and its minimum length; fallback is `algo.BFS` or a bounded match with `LIMIT 1` | Shaukat | **Open — S1** |
-| D2 | `algo.pageRank` name, signature, and whether it can be limited to `DEPENDS_ON` | Shaukat | **Open — S1** |
-| D3 | How the Node client runs a read-only query | Shaukat | **Open — S1** |
+| D1 | `shortestPath` placement inside `MATCH`, and its minimum length; fallback is `algo.BFS` or a bounded match with `LIMIT 1` | Shaukat | **Resolved** on Oct 15 (S1): projection only (`WITH` or `RETURN`), minimum length 0 or 1, bound respected; see [graph.md](./components/graph.md#decisions-from-s1) |
+| D2 | `algo.pageRank` name, signature, and whether it can be limited to `DEPENDS_ON` | Shaukat | **Resolved** on Oct 15 (S1): `algo.pageRank('Install', 'DEPENDS_ON')`, restricted to that label and type |
+| D3 | How the Node client runs a read-only query | Shaukat | **Resolved** on Oct 15 (S1): the client's `roQuery` sends `GRAPH.RO_QUERY`, and the server refuses every write clause |
 | D4 | How verification builds its graph | Both | **Resolved** on Oct 15: a fresh ingest into `verify:<runId>` with both package files overridden; `GRAPH.COPY` is not used (R6) |
 | D5 | OSV `querybatch` size limit (500 assumed) | Shaukat | **Open — S2** |
 | D6 | The three demo repositories and their pinned commits; one must have a waivable finding whose install a more severe advisory also affects, for the memory segment of the demo | Sakib | **Open — S4** |

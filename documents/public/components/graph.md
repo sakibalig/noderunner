@@ -43,7 +43,7 @@ against the shared `advisories` graph; every other file runs against a repositor
 
 ```ts
 // @noderunner/graph
-function connect(opts: { url: string; signal: AbortSignal }): Promise<Db>;
+function connect(opts: { url: string; signal: AbortSignal; onError: (error: GraphError) => void }): Promise<Db>;
 function migrate(g: G, kind: "repo" | "advisories", signal: AbortSignal): Promise<void>;
 
 // @noderunner/graph/cypher — constant constructors and the constants themselves
@@ -53,7 +53,9 @@ export * as schema from "./schema";       // and ingest, tools, memory, api, gol
 ```
 
 `connect` takes its URL from the composition root, which parsed it with the core environment schema; unlike the
-LLD's `connect(url = env.FALKORDB_URL)` the package never reads configuration itself. `Db`, `G`, `Query`, and `Params`
+LLD's `connect(url = env.FALKORDB_URL)` the package never reads configuration itself. `onError` receives the
+connection failures the client reports between calls, as a `graph.unavailable` error, so that the composition root
+logs them: the client emits them as `error` events, and with no listener such an event crashes the process (S1). `Db`, `G`, `Query`, and `Params`
 are the core port types. A constant's `name` is `<file>.<constant>`, for example `tier.reachable`.
 
 ## Rules for every query
@@ -84,26 +86,36 @@ comparison, and `PullRequest` record; `api/plans.ts` sets `Plan.approved`, `appr
 
 ## Behaviour
 
-1. **Connect.** One client per process, created by the composition root and closed in its `finally`. `Db.list`
-   returns the server's graph names that parse as a `GraphName` and drops any other.
+1. **Connect.** One client per process, created by the composition root and closed in its `finally`; `close` is
+   idempotent. The client reconnects on its own after a dropped connection; a call made while it is down fails with
+   `graph.unavailable`. `Db.list` returns the server's graph names that parse as a `GraphName`, sorted, and drops
+   any other.
 2. **Query.** Sends the constant's text with its parameters, converts each result row through `values.ts`, and
-   parses it with the constant's `row` schema. The call honours its `AbortSignal`; each tool's `timeoutMs` and the
-   read-only path's 5-second limit are applied by the caller's signal.
+   parses it with the constant's `row` schema. The call honours its `AbortSignal`; each tool's `timeoutMs` is
+   applied by the caller's signal. The client cannot cancel a sent query, so the signal releases the caller and the
+   server finishes the read up to its own limit: FalkorDB's default stops reads after 1 second (S1), so every call
+   sends `TIMEOUT` explicitly — `limits.toolMs` for a constant, `limits.cypherMs` for `roQuery`. FalkorDB ignores
+   `TIMEOUT` on writes, which always run to completion.
 3. **Batch.** Splits `rows` into chunks of `limits.batchRows` (500), runs the constant once per chunk with
    `$rows` set to the chunk and the shared `params` alongside (for example `$sha`), sequentially, and returns the
    number of rows sent. The signal is checked between chunks. Because every batched write `MERGE`s on a key, a batch
    that fails part-way is repaired by running it again.
-4. **Read-only query.** `roQuery` sends free text through FalkorDB's read-only command, `GRAPH.RO_QUERY`, so a write
-   clause is refused by the server rather than by a text filter. `// VERIFY D3`: whether the Node client exposes it,
-   or whether the adapter sends the raw command. The text rejection of `db.` procedures and the appended
-   `LIMIT 200` stay in `read_only_cypher` in [tools](tools.md); this layer guarantees only that nothing is written.
+4. **Read-only query.** `roQuery` sends free text through the client's `roQuery`, which issues `GRAPH.RO_QUERY`, so
+   a write clause is refused by the server rather than by a text filter (D3). Rows come back as JSON, with nodes as
+   `{id, labels, properties}`, edges as `{id, relationshipType, sourceId, destinationId, properties}`, and paths as
+   `{nodes, edges}`. Rejected text raises `graph.query` with surface `invalid` and FalkorDB's reason, without its
+   echo of the query, so the model can correct itself; a graph that was never written raises `graph.query` with
+   surface `missing`, because `GRAPH.RO_QUERY` fails on it where `GRAPH.QUERY` would create it. The text rejection
+   of `db.` procedures and the appended `LIMIT 200` stay in `read_only_cypher` in [tools](tools.md); this layer
+   guarantees only that nothing is written.
 5. **Drop.** `drop()` issues `GRAPH.DELETE` only on a `verify:` graph. On any other graph it raises
    `graph.protected`: a repository graph is dropped by an operator, never by code. A verification graph is built by
    a full ingest into `verify:<runId>`, not by copying the repository graph (R6), so the port has no copy operation.
+   Dropping a verification graph that does not exist succeeds, so cleanup after a failed verification is safe.
 6. **Migrate.** Creates the nine indexes listed in the [graph schema](../../../contracts/graph/schema.md#indexes) on
-   a repository graph, or the `PV.key` and `Adv.id` indexes on `advisories`. It is idempotent.
-   `// VERIFY S1`: whether `CREATE INDEX` on an existing index errors; if so, `migrate` reads the existing indexes
-   first instead of catching the error.
+   a repository graph, or the `PV.key` and `Adv.id` indexes on `advisories`. FalkorDB rejects a second
+   `CREATE INDEX` on the same property (S1), so `migrate` reads `CALL db.indexes()` first and creates only the
+   missing ones; it is idempotent when run alone, and two concurrent runs on one graph are not supported.
 
 ## Golden queries
 
@@ -126,7 +138,7 @@ ORDER BY vuln LIMIT 500
 // G3 golden.chain — one vulnerability, the shortest chain from a production file; check by reading the source
 MATCH (:Vuln {id: $vulnId})-[:AFFECTS]->(bad:Install)
 MATCH (f:File {kind: "prod"})-[:LOADS]->(entry:Install)
-WITH f, bad, entry, shortestPath((entry)-[:DEPENDS_ON*1..15]->(bad)) AS p   // VERIFY D1
+WITH f, bad, entry, shortestPath((entry)-[:DEPENDS_ON*1..15]->(bad)) AS p   // projection form (D1)
 WHERE p IS NOT NULL
 RETURN f.path AS file, [n IN nodes(p) | n.lock_path] AS chain, length(p) AS hops
 ORDER BY hops, file LIMIT 1
@@ -157,12 +169,14 @@ and the tier query in [tools](tools.md) are written in the projection form shown
 | --- | --- | --- |
 | `graph.unavailable` | Connection refused, lost, or authentication failed | `upstream` (R21) |
 | `graph.timeout` | The caller's signal fired or FalkorDB's own timeout was hit | `upstream`; a tool reports "the query timed out" |
-| `graph.query` | FalkorDB rejected the text | `internal` for a constant, `invalid` through `roQuery` |
+| `graph.query` | FalkorDB rejected the text | `internal` for a constant; `invalid` through `roQuery`, or `missing` when the graph was never written |
 | `graph.readonly` | A write clause reached `roQuery` | `invalid` |
 | `graph.row` | A row did not match the constant's schema | `internal`; it means the constant and its schema disagree |
 | `graph.protected` | `drop()` on a graph that is not `verify:` | `internal` |
 
 A message carries the constant's name and the error class, never parameter values, which may hold repository text.
+FalkorDB reports failures only as message text and client class names, so `client.ts` holds the one table that maps
+them to these codes.
 
 ## Tests
 
@@ -181,13 +195,16 @@ All integration tests run against a real FalkorDB container from `docker compose
 - Golden: after ingesting `fixtures/mini-repo`, G1 returns 12 installs, G2 three vulnerabilities, and G3 for the
   reachable one returns the expected chain from its production file.
 
-## Open points
+## Decisions from S1
 
-Each is answered by spike S1 and recorded in the [decisions](../plan.md#8-decisions):
+Spike S1 ran on Oct 15 against FalkorDB 4.22.1 and the `falkordb` client 6.8.0:
 
-- D1: `shortestPath` placement (projection or `MATCH`) and its minimum length; fallback `algo.BFS` or a bounded match
-  with `LIMIT 1`. Affects G3 and `tier.reachable`.
-- D2: the `algo.pageRank` name, signature, and whether it can be restricted to `Install` and `DEPENDS_ON`. Affects
-  `tools/rank.ts` only.
-- D3: how the Node client runs `GRAPH.RO_QUERY`.
-- Index idempotency is on S1's list but has no decision row. Proposed: record its answer under D3's spike notes.
+- D1: `shortestPath` is accepted only in a `WITH` or `RETURN` projection, as G3 is written; inside `MATCH` it is
+  rejected. Its minimum length must be 0 or 1, and `*0..15` returns a zero-length path when both ends are the same
+  node. The bound, the direction, and the relationship type are respected, and no path gives `null`. G3 runs as
+  written. Whether `golden.direct` and the tier query's zero-hop query fold into one `*0..15` query is for T11 and
+  T12 to decide.
+- D2: `CALL algo.pageRank('Install', 'DEPENDS_ON') YIELD node, score`, two positional arguments, restricted to that
+  label and relationship type. A configuration map is rejected.
+- D3: the client's `roQuery` issues `GRAPH.RO_QUERY`; `CREATE`, `MERGE`, `SET`, `DELETE`, and `CREATE INDEX` are
+  refused and nothing is written. Read procedures such as `db.indexes` are allowed.
