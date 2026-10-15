@@ -5,6 +5,14 @@
   "type": "module",
   "description": "The contract every package depends on: types, zod schemas, ports, events",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./fixtures": "./src/fixtures/index.ts"
+  },
+  "dependencies": {
+    "semver": "7.8.5",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/semver": "7.8.0"
   }
 }

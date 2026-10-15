@@ -94,9 +94,12 @@ type OsvEvent = { introduced: string } | { fixed: string } | { last_affected: st
 type OsvRange = { type: "SEMVER" | "ECOSYSTEM" | "GIT"; events: readonly OsvEvent[] };
 function isAffected(version: string, ranges: readonly OsvRange[]): boolean;
 function lowestFixed(version: string, ranges: readonly OsvRange[]): string | null;
+function rangesFor(record: OsvRecord, pkg: string): readonly OsvRange[]; // merges every npm `affected` entry
+function severityOf(record: OsvRecord): Severity;                      // GitHub's word; MEDIUM is moderate
 ```
 
-`IngestReport` replaces the LLD's `warnings: string[]` with a typed `Warning`, so the UI can group warnings without
+`rangesFor` exists because real advisories list one package in several `affected` entries: GHSA-hrpp-h998-j3pp
+gives `qs` nine. `IngestReport` replaces the LLD's `warnings: string[]` with a typed `Warning`, so the UI can group warnings without
 parsing text. `rank`, `Tier`, and `StaleReason` are the tier and staleness policy that
 [architecture.md](../architecture.md#3-layering) places in core; the queries that apply them live in `packages/graph`.
 
@@ -108,8 +111,8 @@ type Evidence = { nodes: readonly EvNode[]; edges: readonly EvEdge[]; cypher: re
 type ToolOk<T> = { ok: true; data: T; summary: string; evidence: Evidence; stepId: StepId };
 type ToolErr = { ok: false; error: string; stepId: StepId };
 type ToolResult<T> = ToolOk<T> | ToolErr;
-type Actor = "triage" | "fixer" | "baseline" | "mcp" | "ui";
-type ToolCtx = { graph: GraphName; runId: RunId; actor: Actor; signal: AbortSignal };
+type Agent = "triage" | "fixer" | "baseline" | "mcp" | "ui";   // one enum for runs and tool callers
+type ToolCtx = { graph: GraphName; runId: RunId; actor: Agent; signal: AbortSignal };
 type Access = "read" | "derive" | "act";  // R5; "act" is hidden from MCP unless MCP_ALLOW_WRITES=true
 type ToolDef<I extends z.ZodType, O> = {
   name: ToolName;                 // the ten snake_case names plus the baseline's search_files and read_file
@@ -211,8 +214,8 @@ There is no logger port: core never logs, and application packages report throug
 
 ### Environment
 
-`env.ts` exports one schema of every variable and a `pick` per surface (`worker`, `mcp`, `web`, `eval`), so each
-process validates only what it reads. It is parsed once in a composition root; nothing else reads `process.env`.
+`env.ts` exports `parseEnv(surface, source)` for the surfaces `worker`, `mcp`, `web`, and `eval`, so each process
+validates only what it reads; empty strings count as unset. It is parsed once in a composition root; nothing else reads `process.env`.
 
 | Variable | Read by | Schema | Secret |
 | --- | --- | --- | --- |

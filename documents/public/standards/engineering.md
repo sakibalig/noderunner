@@ -63,10 +63,11 @@ form: the snake_case tool names the model calls (`list_alerts`), Cypher labels a
 
 ## Documents, docstrings, and comments
 
-Every exported function, class, and type carries a TSDoc block stating its contract only: what it accepts, what it
-returns, the invariant it holds, and the error it raises. Rationale belongs in a design document under
-[documents](..), not in source. A comment appears only where the code is genuinely non-obvious or an external
-constraint is at play, and is normally one line. Emoji, AI-style filler, and a bare TODO without a task id (`T14`)
+Keep docstrings short: one line, `/** ... */`, on an exported symbol only when its name, its types, and its schema's
+`.describe()` do not already say what it does. No `@param` or `@returns` that restate the signature; add a tag only
+for a non-obvious failure or unit. Rationale belongs in a design document under [documents](..), not in source. An
+inline comment appears only where the code is genuinely non-obvious or an external constraint is at play, and is
+one line. Emoji, AI-style filler, and a bare TODO without a task id (`T14`)
 are not allowed. Markdown prose fills lines to about one hundred characters before wrapping.
 
 ## Configuration
