@@ -28,7 +28,7 @@ apps/worker/src/
                    progress.ts, health.ts, stream.ts
   agent/           loop.ts, tools.ts, prompt.ts, report.ts — see agent.md
   jobs/            queue.ts, ring.ts, replay.ts, hooks.ts
-  adapters/        openai.ts, recorded.ts, clock.ts, ids.ts
+  adapters/        model/ (see llm.md), clock.ts, ids.ts, probe.ts, standin.ts
 ```
 
 ## Interface
@@ -178,7 +178,7 @@ most `RATE_CLIENTS` clients, oldest evicted. Over the limit answers `limited` an
 1. Parse the `worker` pick of the schema in `packages/core/src/env.ts`, which includes `PORT` and `WEB_ORIGIN`; on
    failure print the actionable message and exit non-zero.
 2. Build the adapters: `pino`, FalkorDB through `connect`, the clock, `ulid` ids, the GitHub, OSV, and npm registry
-   clients, the sandbox, the executor, and the `openai` model adapter with `OPENAI_API_KEY` and `MODEL`.
+   clients, the sandbox, the executor, and the model adapter from `modelFor(llmConfig(env))` ([llm](llm.md)).
 3. Build the toolbox with the planner, the executor, and the baseline tools from `packages/tools/src/baseline/`
    (R18); then the jobs; then the app.
 4. Serve with `@hono/node-server` on `PORT`, and log `worker.started` with the port and model id, never a secret.

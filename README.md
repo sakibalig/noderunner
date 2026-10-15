@@ -44,7 +44,7 @@ flowchart LR
     repo["GitHub repository"] --> ingest["Ingest: lockfile, imports, owners, OSV"]
     ingest --> db[("FalkorDB graph per repository")]
     db --> tools["Ten typed tools"]
-    tools --> agent["Triage agent (OpenAI)"]
+    tools --> agent["Triage agent (OpenAI, Anthropic, or Gemini)"]
     tools --> mcp["MCP server"]
     agent --> report["Report with cited paths"]
     agent --> plan["Upgrade plan"]
@@ -66,7 +66,7 @@ flowchart LR
 ## Quickstart (planned)
 
 ```bash
-cp .env.example .env          # set OPENAI_API_KEY, GITHUB_TOKEN, WORKER_TOKEN
+cp .env.example .env          # set LLM_PROVIDER and its key, GITHUB_TOKEN, WORKER_TOKEN
 docker compose up             # FalkorDB on 6379 with the Browser on 3000, the worker, and the web app
 open http://localhost:3001    # paste a GitHub URL, or pick a pre-loaded demo repository
 ```
