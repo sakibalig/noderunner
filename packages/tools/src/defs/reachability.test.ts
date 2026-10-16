@@ -1,119 +1,16 @@
-import { randomBytes } from "node:crypto";
-import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
-import {
-  type Advisories,
-  type Db,
-  type G,
-  GraphName,
-  OsvRecord,
-  RunId,
-  Sha,
-  type ToolCtx,
-} from "@noderunner/core";
-import { connect, migrate } from "@noderunner/graph";
-import { golden, ingest, memory, query } from "@noderunner/graph/cypher";
-import { advisories, imports, lock, lockfile, Manifest, tree } from "@noderunner/ingest";
+import type { Db, G } from "@noderunner/core";
+import { connect } from "@noderunner/graph";
+import { golden, query } from "@noderunner/graph/cypher";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { z } from "zod";
-import { createToolbox, type StepHooks } from "../call.ts";
-import { createTools } from "../registry.ts";
+import { seeded as mini, silent, toolbox } from "../fixture.ts";
 
-const root = join(import.meta.dirname, "../../../..");
-const mini = join(root, "fixtures/mini-repo");
-const repoUrl = "https://github.com/acme/mini-repo";
-const sha = Sha.parse("1".repeat(40));
-const never = new AbortController().signal;
 const url = process.env.FALKORDB_URL ?? "redis://localhost:6379";
-
-function sources(dir: string): Map<string, string> {
-  const files = new Map<string, string>();
-  const visit = (at: string) => {
-    for (const name of readdirSync(at)) {
-      const path = join(at, name);
-      if (statSync(path).isDirectory()) visit(path);
-      else if (/\.(ts|js)$/.test(name)) files.set(relative(dir, path), readFileSync(path, "utf8"));
-    }
-  };
-  visit(join(dir, "src"));
-  visit(join(dir, "scripts"));
-  return files;
-}
-
-const answers = z
-  .record(z.string(), z.array(z.string()))
-  .parse(JSON.parse(readFileSync(join(mini, "osv.json"), "utf8")));
-const records = new Map(
-  [
-    join(root, "fixtures/osv/GHSA-rv95-896h-c2vc.json"),
-    join(root, "fixtures/osv/GHSA-vh95-rmgr-6w4m.json"),
-    join(root, "packages/core/src/fixtures/osv/GHSA-35jh-r3h4-6jhm.json"),
-    join(root, "packages/core/src/fixtures/osv/GHSA-hrpp-h998-j3pp.json"),
-  ].map((path) => {
-    const record = OsvRecord.parse(JSON.parse(readFileSync(path, "utf8")));
-    return [record.id, record] as const;
-  }),
-);
-const recorded: Advisories = {
-  async query(pairs) {
-    return pairs.map((pair) =>
-      (answers[`${pair.name}@${pair.version}`] ?? []).map((id) => ({ id, modified: 1 })),
-    );
-  },
-  async record(id) {
-    return records.get(id) ?? null;
-  },
-};
-
+const never = new AbortController().signal;
 let db: Db;
 const made: G[] = [];
-let counter = 0;
-
-function ulid(): string {
-  const alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
-  return [...randomBytes(26)]
-    .map((byte) => alphabet[byte % 32])
-    .join("")
-    .replace(/^./, "0");
-}
-
-/** A fresh graph holding the mini-repo after stages 2 to 4, and a triage run to hang steps on. */
-async function seeded(): Promise<{ g: G; ctx: ToolCtx }> {
-  const g = db.graph(GraphName.parse(`verify:${ulid().toLowerCase()}`));
-  made.push(g);
-  await migrate(g, "repo", never);
-  await g.query(
-    ingest.repo.upsert,
-    { url: repoUrl, owner: "acme", name: "mini-repo", branch: "main" },
-    never,
-  );
-  const manifestFile = Manifest.parse(JSON.parse(readFileSync(join(mini, "package.json"), "utf8")));
-  const lockFile = lock(readFileSync(join(mini, "package-lock.json"), "utf8"));
-  const opts = { onProgress: () => {}, signal: never };
-  const stage2 = await lockfile({ g, url: repoUrl, sha, lock: lockFile, manifest: manifestFile }, opts);
-  await imports(
-    { g, url: repoUrl, sha, files: sources(mini), manifest: manifestFile, installs: stage2.paths },
-    opts,
-  );
-  await advisories(
-    { g, sha, installs: tree(lockFile, manifestFile).installs },
-    { advisories: recorded },
-    opts,
-  );
-  const runId = RunId.parse(ulid());
-  await g.query(memory.run.start, { id: runId, agent: "triage", model: null, now: 0 }, never);
-  return { g, ctx: { graph: g.name, runId, actor: "triage", signal: never } };
-}
-
-const hooks: StepHooks = { onStart: () => {}, onFinish: () => {} };
-
-function toolbox() {
-  return createToolbox(
-    { db, clock: { now: () => (counter += 1) }, ids: { next: ulid }, tools: createTools({ db }) },
-    { access: ["read", "derive", "act"] },
-  );
-}
-
+const hooks = silent;
+const seeded = () => mini(db, made);
 const tiers = query(
   "test.tiers",
   "MATCH (x:Finding) RETURN x.key AS key, x.tier AS tier ORDER BY key LIMIT 20",
@@ -140,7 +37,7 @@ afterAll(async () => {
 describe("reachability on the mini-repo", () => {
   it("puts each finding in its tier, with the shortest chain for the reachable ones", async () => {
     const { g, ctx } = await seeded();
-    const result = await toolbox().callTool("reachability", {}, ctx, hooks);
+    const result = await toolbox(db).callTool("reachability", {}, ctx, hooks);
     if (!result.ok) throw new Error(result.error);
     expect(result.data).toEqual({
       counts: { "import-reachable": 2, installed: 1, "dev-only": 1 },
@@ -172,7 +69,7 @@ describe("reachability on the mini-repo", () => {
 
   it("returns the path as evidence with stable keys, and records it on the Step", async () => {
     const { g, ctx } = await seeded();
-    const result = await toolbox().callTool("reachability", {}, ctx, hooks);
+    const result = await toolbox(db).callTool("reachability", {}, ctx, hooks);
     if (!result.ok) throw new Error(result.error);
     const keys = result.evidence.edges.map((edge) => edge.key);
     expect(keys).toEqual([
@@ -191,7 +88,7 @@ describe("reachability on the mini-repo", () => {
 
   it("tiers only the findings asked for", async () => {
     const { g, ctx } = await seeded();
-    const result = await toolbox().callTool(
+    const result = await toolbox(db).callTool(
       "reachability",
       { keys: ["GHSA-vh95-rmgr-6w4m|minimist"] },
       ctx,
@@ -207,13 +104,13 @@ describe("reachability on the mini-repo", () => {
 
   it("answers missing for a key no finding has", async () => {
     const { ctx } = await seeded();
-    const result = await toolbox().callTool("reachability", { keys: ["GHSA-nope|nothing"] }, ctx, hooks);
+    const result = await toolbox(db).callTool("reachability", { keys: ["GHSA-nope|nothing"] }, ctx, hooks);
     expect(result).toMatchObject({ ok: false, error: "No finding has the key GHSA-nope|nothing" });
   });
 
   it("gives the same answer every time, and G3 agrees on the chain", async () => {
     const { g, ctx } = await seeded();
-    const box = toolbox();
+    const box = toolbox(db);
     const first = await box.callTool("reachability", {}, ctx, hooks);
     const second = await box.callTool("reachability", {}, ctx, hooks);
     expect(first.ok && second.ok && first.data).toEqual(second.ok && second.data);
