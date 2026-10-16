@@ -133,7 +133,21 @@ importers:
 
   packages/planner: {}
 
-  packages/tools: {}
+  packages/tools:
+    dependencies:
+      '@noderunner/core':
+        specifier: workspace:*
+        version: link:../core
+      '@noderunner/graph':
+        specifier: workspace:*
+        version: link:../graph
+      zod:
+        specifier: 4.6.7
+        version: 4.6.7
+    devDependencies:
+      '@noderunner/ingest':
+        specifier: workspace:*
+        version: link:../ingest
 
 packages:
 

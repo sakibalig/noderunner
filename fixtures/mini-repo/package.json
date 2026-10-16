@@ -1,0 +1,7 @@
+{
+  "name": "mini-repo",
+  "version": "1.0.0",
+  "main": "src/index.ts",
+  "dependencies": { "express": "^4.17.1", "left-pad": "^1.3.0", "mkdirp": "^0.5.1" },
+  "devDependencies": { "jest-lite": "^1.0.0" }
+}

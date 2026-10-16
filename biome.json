@@ -14,7 +14,8 @@
       "!**/.cache",
       "!contracts",
       "!documents",
-      "!fixtures/imports"
+      "!fixtures/imports",
+      "!fixtures/mini-repo"
     ]
   },
   "formatter": {

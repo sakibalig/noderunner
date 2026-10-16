@@ -85,7 +85,7 @@ Exit: one real repository in the graph, golden queries G1 to G5 correct.
 | T04 | Ingest stage 1: tarball fetch and filter | Shaukat | 1.5 | T03 | Demo repository 1 fetched in under 10 s | done (PR merged); `nestjs/nest` as a stand-in for D6 fetched in 2.1 s |
 | T05 | Ingest stage 2: lockfile parser, Node resolution, writes | Shaukat | 3 | T04 | Nested-lockfile test passes; G1 matches | done (PR merged); G1 equals the raw lockfile on `nestjs/nest` (1,638 installs, 97 direct) |
 | T06 | Ingest stage 3: imports, resolution, classification, `LOADS` | Shaukat | 3 | T04 | Syntax-form tests pass; G4 correct | done (PR merged); G4 equals a text search on `nestjs/nest` for `rxjs` (121 files) and `reflect-metadata` (6) |
-| T07 | Ingest stage 4: OSV, advisory cache, `isAffected`, Findings | Shaukat | 2.5 | T05 | G2 matches `npm audit` within explained differences | in review (feat/t07-advisories); cache deferred; G2 and `npm audit` agree on all 56 advisories of `nestjs/nest` |
+| T07 | Ingest stage 4: OSV, advisory cache, `isAffected`, Findings | Shaukat | 2.5 | T05 | G2 matches `npm audit` within explained differences | done (PR merged); cache deferred; G2 and `npm audit` agree on all 56 advisories of `nestjs/nest` |
 | T08 | Ingest stage 5: CODEOWNERS and git history | Sakib | 2 | T03 | G5 correct on demo repository 1 | done (PR merged) |
 | T09 | Worker: Hono, `/healthz`, `POST /repos` with job queue and job SSE, `GET /repos`, `summary` | Sakib | 3 | T02 | Ingest triggered over HTTP with live progress | in review (feat/t09-worker) |
 | T10 | Web shell: home, repository page, funnel and alert table on fixture data | Sakib | 3 | T02 | Pages render from fixtures | in review (feat/t10-web) |
@@ -97,7 +97,7 @@ Exit: a CLI run on demo repository 1 gives a correct plan with citations and a s
 
 | ID | Task | Owner | Hours | Needs | Done when | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| T12 | `callTool`, Step writes, `reachability` with the tier query | Shaukat | 3 | T11 | Tier counts on mini-repo and demo repository 1 match labels | todo |
+| T12 | `callTool`, Step writes, `reachability` with the tier query | Shaukat | 3 | T11 | Tier counts on mini-repo and demo repository 1 match labels | in review (feat/t12-reachability); mini-repo tiers exact; demo repository 1 waits on D6 and labels on T24; on `nestjs/nest` 12 reachable, 44 dev-only, three chains checked by hand |
 | T13 | Remaining read tools and `record_decision`, `read_only_cypher` | Shaukat | 4 | T12 | Snapshot tests pass | todo |
 | T14 | Planner with registry client and cache; `plan_upgrades` | Shaukat | 5 | T12 | Unit cases pass; plan on demo repository 1 checked by hand | todo |
 | T15 | Run endpoints: `POST /runs`, run SSE with replay, `GET /runs/:id`, `subgraph`, `approve`, `ship`, `decisions` | Sakib | 2.5 | T09 | curl can start a run and stream it | todo |

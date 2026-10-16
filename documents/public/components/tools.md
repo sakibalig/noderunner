@@ -226,6 +226,20 @@ cannot sit in `MATCH`, the fallback is one query per entry install using `algo.B
 above 500 ms it switches to one query per finding with the same text and `$keys` of one, which is the plan's
 mitigation.
 
+**As built (T12).** S1 showed that FalkorDB accepts `shortestPath` only as a `WITH` or `RETURN` projection and
+allows a minimum length of 0, so `tier.reachable` is written in the projection form with `*0..15` and also covers
+the zero-hop case: `tier.direct` is not needed, and the chain of a file loading the affected install itself has
+one element and `hops: 0`. The reads in this file written as `MATCH p = shortestPath(...)` must take the same form
+when they are built. `tier.known` checks the requested keys first, so an unknown key is `missing`, and the write is
+`tier.save`. On `nestjs/nest` (56 findings) the single query takes about 0.55 s and the per-finding fallback 2.07 s
+for the same 12 rows, so the single query stays: the 500 ms line assumed the fallback would be faster, and the
+tool's 20-second budget is far away. Three of its chains were checked by hand against the lockfile and the source.
+The Step's `cypher` property is written from a parameter named `queries`, because the client sends parameters as
+a `CYPHER name=value` prefix and a parameter named `cypher` breaks it. `forModel(tool, result)` takes the tool name,
+and wrapping repository text as `quoted` arrives with the tools that return such text, from T13. Nothing in the
+tools creates a `Run`: `run.start` in `cypher/memory/run.ts` is for whoever starts the run, and a call under a run
+that does not exist ends with "The step could not be recorded" and no `onStart`.
+
 #### `introduced_by` — read
 
 Input `{ key }`. For each affected install, the direct dependencies whose `DECLARES` edge reaches it, with the chain.
