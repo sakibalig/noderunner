@@ -63,7 +63,7 @@ export function render(report: Report): string {
     "",
   );
 
-  lines.push(`WHY THE ${tiers["import-reachable"]} REACHABLE ONES MATTER`);
+  lines.push(`REACHABLE FROM PRODUCTION CODE (${tiers["import-reachable"]})`);
   if (report.reachable.length === 0) lines.push("  None: no production file loads a vulnerable install.");
   for (const finding of report.reachable) {
     const [vulnId, name] = finding.key.split("|");
