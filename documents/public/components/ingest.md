@@ -149,7 +149,7 @@ two when it starts with `@`, and keeps any subpath as `specifier`. One that is n
 
 Each file gets `kind` by the first matching rule, `test`, `config`, `script`, then `prod`, using the path lists of
 the LLD unchanged: `test` is `__tests__/`, `__mocks__/`, `.test.`, `.spec.`, top-level `test/`, `tests/`, `e2e/`,
-`cypress/`, `playwright/`, `.storybook/`, and `*.stories.*`; `config` is `*.config.*`, `.eslintrc*`,
+`cypress/`, `playwright/`, `.storybook/`, and `*.stories.*`, plus top-level `integration/` (added after `nestjs/nest` showed its integration tests counted as production code); `config` is `*.config.*`, `.eslintrc*`,
 `babel.config.*`, and `jest.setup.*`; and `script` is top-level `scripts/`, `tools/`, and `bench/`. `is_entry` is
 true for files named by `main`, `module`, `bin`, and every string leaf of `exports` in `package.json`, files under
 `pages/`, `app/`, `src/pages/`, `src/app/`, and `src/index.*`, `index.*`, and `server.*`. Writes are `File` with
@@ -244,6 +244,21 @@ MATCH (r:Repo {url: $url}) SET r.snapshot_sha = $sha, r.ingested_at = $now
 
 Deleting an install also deletes the `TOUCHED` edges old steps hold to it, a known gap in
 [architecture.md](../architecture.md#15-known-gaps).
+
+## As built: the pipeline (T19)
+
+`ingest()` in `src/pipeline.ts` runs the index migration and then the stages in order, timing each with the
+injected clock: for a `repo` target fetch, lockfile, imports, advisories, people, and prune; for a `verify` target
+the same without people, which reports 0 people. Warnings from every stage are merged by code, counts added and
+samples kept in stage order up to five. People emits its own progress around Sakib's stage. Stage 6 is
+`src/stages/prune.ts` with the constants in `cypher/ingest/prune.ts`, as specified above; `prune.fixed` returns the
+number it fixed. A failure in any stage before prune leaves the previous `snapshot_sha` in place. On `nestjs/nest`
+the whole pipeline took 14.7 s: fetch 3.4, lockfile 0.15, imports 2.5, advisories 5.9, people 2.8, prune 0.05.
+
+The worker's `Ingester` is `ingest()` with `GitHub` (head, tarball), `GitHistory` (history), and `OSV`, and its
+`Catalog` is `GraphCatalog` in `apps/worker/src/adapters/catalog.ts`, reading `cypher/api`. The catalog checks
+`db.list()` before reading a repository's graph, because a read creates a missing graph. The funnel counts tiers,
+so it stays at total only until a run calls `reachability`.
 
 ## Failures
 

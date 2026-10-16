@@ -10,6 +10,7 @@ describe("kind", () => {
     ["test/helpers.js", "test"],
     ["tests/setup.ts", "test"],
     ["e2e/login.ts", "test"],
+    ["integration/microservices/src/app.controller.ts", "test"],
     ["cypress/support/e2e.ts", "test"],
     ["playwright/home.ts", "test"],
     [".storybook/main.ts", "test"],

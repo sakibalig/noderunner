@@ -99,7 +99,7 @@ Exit: a CLI run on demo repository 1 gives a correct plan with citations and a s
 | --- | --- | --- | --- | --- | --- | --- |
 | T12 | `callTool`, Step writes, `reachability` with the tier query | Shaukat | 3 | T11 | Tier counts on mini-repo and demo repository 1 match labels | done (PR merged); mini-repo tiers exact; demo repository 1 waits on D6 and labels on T24; on `nestjs/nest` 12 reachable, 44 dev-only, three chains checked by hand |
 | T13 | Remaining read tools and `record_decision`, `read_only_cypher` | Shaukat | 4 | T12 | Snapshot tests pass | done (PR merged); five tools built and tested on mini-repo and `nestjs/nest`; `owners_for` moves to T14, `rank_packages` deferred |
-| T14 | Planner with registry client and cache; `plan_upgrades` | Shaukat | 5 | T12 | Unit cases pass; plan on demo repository 1 checked by hand | in review (feat/t14-planner); with `owners_for`; on `nestjs/nest` 4 upgrades close 12 findings at cost 7, checked by hand |
+| T14 | Planner with registry client and cache; `plan_upgrades` | Shaukat | 5 | T12 | Unit cases pass; plan on demo repository 1 checked by hand | done (PR merged); with `owners_for`; on `nestjs/nest` 4 upgrades close 12 findings at cost 7, checked by hand |
 | T15 | Run endpoints: `POST /runs`, run SSE with replay, `GET /runs/:id`, `subgraph`, `approve`, `ship`, `decisions` | Sakib | 2.5 | T09 | curl can start a run and stream it | todo |
 | T16 | Agent loop, triage system prompt, step cap, report validator | Sakib | 5 | T02, then T12 | Day 2 exit met | todo |
 | T17 | Run view: reducer, step timeline, report panel with citations, live SSE | Sakib | 3.5 | T15 | A live run renders end to end | todo |
@@ -111,7 +111,7 @@ Exit: the full demo script runs on the hosted build; feature freeze at midnight.
 
 | ID | Task | Owner | Hours | Needs | Done when | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| T19 | Ingest stage 6: prune, re-ingest, Finding status; staleness rules | Shaukat | 2 | T13 | Re-ingest at a newer commit keeps decisions and flags stale ones | todo |
+| T19 | Ingest stage 6: prune, re-ingest, Finding status; staleness rules | Shaukat | 2 | T13 | Re-ingest at a newer commit keeps decisions and flags stale ones | in review (feat/t19-ingest), with `ingest()` and the worker's real ingester and graph catalog; staleness rules shipped in T13 |
 | T20 | Graph canvas: layout, styles, highlight, citation linking | Sakib | 4 | T17 | Clicking a citation highlights the right path | todo |
 | T21 | Executor: `package.json` edit, sandbox image, lockfile regeneration, Git Data API push, pull request | Shaukat | 4 | T14 | A real pull request on fork 1 | todo |
 | T22 | Verification re-ingest and the pull request description | Shaukat | 2 | T21 | The description shows correct closed counts | todo |

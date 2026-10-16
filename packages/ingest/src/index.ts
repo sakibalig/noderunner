@@ -7,6 +7,7 @@ export { Codeowners } from "./parse/codeowners.ts";
 export { type Found, imports as specifiers } from "./parse/imports.ts";
 export { type Entry, Lock, lock } from "./parse/lock.ts";
 export { Manifest, manifest } from "./parse/manifest.ts";
+export { type Deps as IngestDeps, ingest, type Opts as IngestOpts } from "./pipeline.ts";
 export {
   type Affected,
   advisories,
@@ -27,3 +28,4 @@ export {
 } from "./stages/imports.ts";
 export { lockfile, resolve, type Tree, tree } from "./stages/lockfile.ts";
 export { HISTORY_COMMITS, people, tally } from "./stages/people.ts";
+export { prune } from "./stages/prune.ts";

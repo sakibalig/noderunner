@@ -63,6 +63,15 @@ importers:
       '@noderunner/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@noderunner/graph':
+        specifier: workspace:*
+        version: link:../../packages/graph
+      '@noderunner/ingest':
+        specifier: workspace:*
+        version: link:../../packages/ingest
+      '@noderunner/planner':
+        specifier: workspace:*
+        version: link:../../packages/planner
       hono:
         specifier: 4.13.13
         version: 4.13.13
@@ -78,6 +87,10 @@ importers:
       zod:
         specifier: 4.6.7
         version: 4.6.7
+    devDependencies:
+      falkordb:
+        specifier: 6.8.0
+        version: 6.8.0
 
   eval: {}
 
@@ -128,6 +141,10 @@ importers:
       zod:
         specifier: 4.6.7
         version: 4.6.7
+    devDependencies:
+      falkordb:
+        specifier: 6.8.0
+        version: 6.8.0
 
   packages/mcp: {}
 
