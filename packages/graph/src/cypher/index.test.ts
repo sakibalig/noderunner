@@ -32,7 +32,7 @@ const all = constants(
 
 describe("cypher constants", () => {
   it("finds the constants to check", () => {
-    expect(all.length).toBe(58);
+    expect(all.length).toBe(73);
   });
 
   it("gives every constant a unique <file>.<constant> name", () => {

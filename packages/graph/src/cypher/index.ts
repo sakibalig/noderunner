@@ -1,3 +1,4 @@
+export * as api from "./api/index.ts";
 export { query, write } from "./define.ts";
 export * as golden from "./golden.ts";
 export * as ingest from "./ingest/index.ts";

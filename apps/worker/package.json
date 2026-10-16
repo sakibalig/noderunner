@@ -10,6 +10,9 @@
   "dependencies": {
     "@hono/node-server": "2.1.5",
     "@noderunner/core": "workspace:*",
+    "@noderunner/graph": "workspace:*",
+    "@noderunner/ingest": "workspace:*",
+    "@noderunner/planner": "workspace:*",
     "hono": "4.13.13",
     "p-queue": "10.0.0",
     "pino": "10.4.0",
@@ -19,5 +22,8 @@
   "scripts": {
     "dev": "tsx watch src/main.ts",
     "start": "tsx src/main.ts"
+  },
+  "devDependencies": {
+    "falkordb": "6.8.0"
   }
 }
