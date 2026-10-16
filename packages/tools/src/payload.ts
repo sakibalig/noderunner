@@ -51,14 +51,15 @@ function halve(slot: Slot): void {
 }
 
 /**
- * What a model or an MCP client reads: the tool, whether it worked, and its summary and data, never the evidence.
+ * What a model or an MCP client reads: the tool, the step id to cite, whether it worked, and its summary and data,
+ * never the evidence.
  * Longer than `limits.modelChars`, the largest array in `data` loses items from its tail, and once no array is left
  * the longest string is halved, until it fits; `omitted` counts the array items removed. Deterministic.
  */
 export function forModel(tool: string, result: ToolResult<unknown>): string {
-  if (!result.ok) return JSON.stringify({ tool, ok: false, error: result.error });
+  if (!result.ok) return JSON.stringify({ tool, stepId: result.stepId, ok: false, error: result.error });
   const data = copy(result.data);
-  const body = { tool, ok: true, summary: result.summary, data };
+  const body = { tool, stepId: result.stepId, ok: true, summary: result.summary, data };
   let omitted = 0;
   const render = () => JSON.stringify(omitted > 0 ? { ...body, omitted } : body);
   for (let text = render(); text.length > limits.modelChars; text = render()) {
