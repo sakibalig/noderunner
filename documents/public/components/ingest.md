@@ -149,7 +149,7 @@ two when it starts with `@`, and keeps any subpath as `specifier`. One that is n
 
 Each file gets `kind` by the first matching rule, `test`, `config`, `script`, then `prod`, using the path lists of
 the LLD unchanged: `test` is `__tests__/`, `__mocks__/`, `.test.`, `.spec.`, top-level `test/`, `tests/`, `e2e/`,
-`cypress/`, `playwright/`, `.storybook/`, and `*.stories.*`; `config` is `*.config.*`, `.eslintrc*`,
+`cypress/`, `playwright/`, `.storybook/`, and `*.stories.*`, plus top-level `integration/` (added after `nestjs/nest` showed its integration tests counted as production code); `config` is `*.config.*`, `.eslintrc*`,
 `babel.config.*`, and `jest.setup.*`; and `script` is top-level `scripts/`, `tools/`, and `bench/`. `is_entry` is
 true for files named by `main`, `module`, `bin`, and every string leaf of `exports` in `package.json`, files under
 `pages/`, `app/`, `src/pages/`, `src/app/`, and `src/index.*`, `index.*`, and `server.*`. Writes are `File` with
