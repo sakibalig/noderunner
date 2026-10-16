@@ -36,3 +36,19 @@ ORDER BY vuln LIMIT 500`,
     installs: z.array(z.string()).describe("The affected lock paths"),
   }),
 );
+
+/** G3: one vulnerability's shortest chain from a production file; check by reading the source. */
+export const chain = query(
+  "golden.chain",
+  `MATCH (:Vuln {id: $vulnId})-[:AFFECTS]->(bad:Install)
+MATCH (f:File {kind: "prod"})-[:LOADS]->(entry:Install)
+WITH f, bad, entry, shortestPath((entry)-[:DEPENDS_ON*0..15]->(bad)) AS p
+WHERE p IS NOT NULL
+RETURN f.path AS file, [n IN nodes(p) | n.lock_path] AS chain, length(p) AS hops
+ORDER BY hops, file LIMIT 1`,
+  z.object({
+    file: z.string().describe("A production file"),
+    chain: z.array(z.string()).describe("Lock paths from the loaded install to the affected one"),
+    hops: z.number().int().nonnegative().describe("DEPENDS_ON edges in the chain"),
+  }),
+);
