@@ -68,7 +68,7 @@ updated at each evening call.
 | ID | Task | Owner | Hours | Needs | Done when | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | S1 | FalkorDB in Docker; verify `shortestPath`, `algo.pageRank`, read-only queries, indexes, from the Node client | Shaukat | 2.5 | — | Every `VERIFY` in the component designs has an answer (D1–D4) | done (D1–D3 resolved) |
-| S2 | OSV `querybatch` and `/vulns` on 5 packages; npm packument shape; batch size limit | Shaukat | 1 | — | Sample responses saved as fixtures (D5) | unknown |
+| S2 | OSV `querybatch` and `/vulns` on 5 packages; npm packument shape; batch size limit | Shaukat | 1 | — | Sample responses saved as fixtures (D5) | done (OSV part; `fixtures/osv`); the npm packument moves to T14 |
 | S3 | OpenAI tool-calling loop with one fake tool and streaming; MCP hello-world added to an MCP client | Sakib | 2 | — | Both work end to end | unknown |
 | S4 | Pick and fork 3 demo repositories (lockfile v2 or v3, under 1,500 installs, a mix of tiers, CODEOWNERS on one); fine-grained token; FalkorDB Cloud account | Sakib | 2 | — | Repositories listed with pinned commits (D6) | unknown |
 | S5 | Read the design together; agree `packages/core` types | Both | 1 | — | Open decisions resolved or assigned | unknown |
@@ -84,8 +84,8 @@ Exit: one real repository in the graph, golden queries G1 to G5 correct.
 | T03 | `packages/graph`: connect, query, roQuery, batch, migrate | Shaukat | 1.5 | T01 | Integration test creates and reads nodes | done (PR merged) |
 | T04 | Ingest stage 1: tarball fetch and filter | Shaukat | 1.5 | T03 | Demo repository 1 fetched in under 10 s | done (PR merged); `nestjs/nest` as a stand-in for D6 fetched in 2.1 s |
 | T05 | Ingest stage 2: lockfile parser, Node resolution, writes | Shaukat | 3 | T04 | Nested-lockfile test passes; G1 matches | done (PR merged); G1 equals the raw lockfile on `nestjs/nest` (1,638 installs, 97 direct) |
-| T06 | Ingest stage 3: imports, resolution, classification, `LOADS` | Shaukat | 3 | T04 | Syntax-form tests pass; G4 correct | in review (feat/t06-imports); G4 equals a text search on `nestjs/nest` for `rxjs` (121 files) and `reflect-metadata` (6) |
-| T07 | Ingest stage 4: OSV, advisory cache, `isAffected`, Findings | Shaukat | 2.5 | T05 | G2 matches `npm audit` within explained differences | todo |
+| T06 | Ingest stage 3: imports, resolution, classification, `LOADS` | Shaukat | 3 | T04 | Syntax-form tests pass; G4 correct | done (PR merged); G4 equals a text search on `nestjs/nest` for `rxjs` (121 files) and `reflect-metadata` (6) |
+| T07 | Ingest stage 4: OSV, advisory cache, `isAffected`, Findings | Shaukat | 2.5 | T05 | G2 matches `npm audit` within explained differences | in review (feat/t07-advisories); cache deferred; G2 and `npm audit` agree on all 56 advisories of `nestjs/nest` |
 | T08 | Ingest stage 5: CODEOWNERS and git history | Sakib | 2 | T03 | G5 correct on demo repository 1 | done (PR merged) |
 | T09 | Worker: Hono, `/healthz`, `POST /repos` with job queue and job SSE, `GET /repos`, `summary` | Sakib | 3 | T02 | Ingest triggered over HTTP with live progress | in review (feat/t09-worker) |
 | T10 | Web shell: home, repository page, funnel and alert table on fixture data | Sakib | 3 | T02 | Pages render from fixtures | in review (feat/t10-web) |
@@ -174,7 +174,7 @@ If a day's exit condition is missed at the evening call, cut the next morning in
 | D2 | `algo.pageRank` name, signature, and whether it can be limited to `DEPENDS_ON` | Shaukat | **Resolved** on Oct 15 (S1): `algo.pageRank('Install', 'DEPENDS_ON')`, restricted to that label and type |
 | D3 | How the Node client runs a read-only query | Shaukat | **Resolved** on Oct 15 (S1): the client's `roQuery` sends `GRAPH.RO_QUERY`, and the server refuses every write clause |
 | D4 | How verification builds its graph | Both | **Resolved** on Oct 15: a fresh ingest into `verify:<runId>` with both package files overridden; `GRAPH.COPY` is not used (R6) |
-| D5 | OSV `querybatch` size limit (500 assumed) | Shaukat | **Open — S2** |
+| D5 | OSV `querybatch` size limit (500 assumed) | Shaukat | **Resolved** on Oct 17 (S2): 1,000 queries per batch; 1,001 is rejected with "too many queries" |
 | D6 | The three demo repositories and their pinned commits; one must have a waivable finding whose install a more severe advisory also affects, for the memory segment of the demo | Sakib | **Open — S4** |
 | D7 | The hackathon rules: judging weights, whether pre-event code is allowed, whether a deployment is required, one track or several, what the submission form asks | Both | **Open** — the Rules and Schedule tabs and the FAQ were never read |
 | D8 | Re-check staleness after `reachability` (C2) | Both | **Proposed** |

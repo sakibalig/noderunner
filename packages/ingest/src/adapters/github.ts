@@ -1,6 +1,7 @@
 import { type Forge, type RepoRef, Sha } from "@noderunner/core";
 import { z } from "zod";
 import { IngestError } from "../errors.ts";
+import { pause } from "./wait.ts";
 
 const API = "https://api.github.com";
 const ATTEMPTS = 3;
@@ -96,22 +97,4 @@ function failure(error: unknown, signal: AbortSignal, message: string): IngestEr
   if (error instanceof IngestError) return error;
   if (signal.aborted) return new IngestError("ingest.aborted", "ingestion was stopped");
   return new IngestError("ingest.upstream", message);
-}
-
-function pause(ms: number, signal: AbortSignal): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (signal.aborted) {
-      reject(new IngestError("ingest.aborted", "ingestion was stopped"));
-      return;
-    }
-    const timer = setTimeout(() => {
-      signal.removeEventListener("abort", stop);
-      resolve();
-    }, ms);
-    const stop = () => {
-      clearTimeout(timer);
-      reject(new IngestError("ingest.aborted", "ingestion was stopped"));
-    };
-    signal.addEventListener("abort", stop, { once: true });
-  });
 }

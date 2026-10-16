@@ -202,6 +202,16 @@ MERGE (x)-[:ABOUT]->(v)
 `advisories.at` then `MERGE`s `(x)-[a:AT]->(i)` for each affected install and sets `a.snapshot_sha = $sha`. A `planned` or `waived` finding keeps its
 status; a `fixed` one that reappears is reopened.
 
+**As built (T07).** The shared `advisories` cache graph is deferred to save time: every ingest asks OSV again, which
+costs about 6 seconds for 1,600 installs and is fine for the demo repositories. The `PV` and `Adv` indexes remain in
+`schema.ts`, and the cache can be added later without changing the stage's output. OSV accepts at most 1,000 queries
+per batch (S2, D5), and the `OSV` adapter in `src/adapters/osv.ts` follows `next_page_token`; a record OSV answers
+404 for is skipped with a `skipped` warning. `cvss` is not written yet, because core's `OsvRecord` does not parse
+OSV's `severity[]`; adding that field to core is the only change needed. The stage takes the install rows from
+`tree()`, so it knows each install's name and version. On `nestjs/nest` it found the same 56 advisories as
+`npm audit --package-lock-only`. Where they differ on installs, `npm audit` lists every install of a vulnerable
+package name, including copies already at a fixed version, while `AFFECTS` reaches only the versions OSV lists.
+
 **5. People (T08, Sakib).** `src/stages/people.ts`, with the parser in `src/parse/codeowners.ts`. CODEOWNERS lines
 become `(pattern, owners[])`; a path's owners come from the last rule whose pattern matches it under the `ignore`
 package's gitignore semantics, and a last match with no owners leaves the path unowned. `@org/team` becomes one
