@@ -70,6 +70,14 @@ exceeds it; they have a 20 MB limit. Kept source stops at 50 MB, after which fur
 override's two texts take their place, under the same limits. Both package files are parsed with zod: no lockfile,
 or a `lockfileVersion` other than 2 or 3, fails with `ingest.lockfile`.
 
+Stage 1 is `snapshot()` in `src/stages/fetch.ts`, which also defines `Target` and returns a `Snapshot`: the commit,
+the `Repo` URL, both parsed package files, the CODEOWNERS text, and the kept source files by path, for stages 2, 3,
+and 5. The `Repo` key is `repoUrl(repo)`, `https://github.com/<owner>/<name>` lowercased like the graph name, so a
+change of case on GitHub does not create a second `Repo`; `repo.upsert` keeps the stored `default_branch` when the
+commit was given rather than read from the head. `Forge.head` and `Forge.tarball` are the `GitHub` adapter in
+`src/adapters/github.ts`, which retries network failures and 5xx answers three times, maps a 404 to
+`ingest.missing`, and does not retry any other 4xx. Paths containing `..` or an empty segment are dropped.
+
 **2. Lockfile (T05).** The `packages` map gives one `Install` per key; `""` is the root project and `link` entries
 are workspace links, both skipped. Dependencies resolve the way Node does, walking up from the requiring install:
 
