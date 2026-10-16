@@ -16,7 +16,13 @@ describe("forModel", () => {
       evidence: { nodes: [{ id: 1, key: "k", label: "L", name: "n" }], edges: [], cypher: ["MATCH"] },
       stepId,
     });
-    expect(JSON.parse(text)).toEqual({ tool: "reachability", ok: true, summary: "s", data: { a: 1 } });
+    expect(JSON.parse(text)).toEqual({
+      tool: "reachability",
+      stepId,
+      ok: true,
+      summary: "s",
+      data: { a: 1 },
+    });
   });
 
   it("trims a 9,000-character result to valid JSON within the limit and counts what it left out", () => {
@@ -46,6 +52,7 @@ describe("forModel", () => {
     const failed = { ok: false as const, error: "No finding has the key x", stepId };
     expect(JSON.parse(forModel("reachability", failed))).toEqual({
       tool: "reachability",
+      stepId,
       ok: false,
       error: "No finding has the key x",
     });

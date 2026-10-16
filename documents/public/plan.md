@@ -101,7 +101,7 @@ Exit: a CLI run on demo repository 1 gives a correct plan with citations and a s
 | T13 | Remaining read tools and `record_decision`, `read_only_cypher` | Shaukat | 4 | T12 | Snapshot tests pass | done (PR merged); five tools built and tested on mini-repo and `nestjs/nest`; `owners_for` moves to T14, `rank_packages` deferred |
 | T14 | Planner with registry client and cache; `plan_upgrades` | Shaukat | 5 | T12 | Unit cases pass; plan on demo repository 1 checked by hand | done (PR merged); with `owners_for`; on `nestjs/nest` 4 upgrades close 12 findings at cost 7, checked by hand |
 | T15 | Run endpoints: `POST /runs`, run SSE with replay, `GET /runs/:id`, `subgraph`, `approve`, `ship`, `decisions` | Sakib | 2.5 | T09 | curl can start a run and stream it | todo |
-| T16 | Agent loop, triage system prompt, step cap, report validator | Sakib | 5 | T02, then T12 | Day 2 exit met | todo |
+| T16 | Agent loop, triage system prompt, step cap, report validator | Shaukat (taken over from Sakib, agreed) | 5 | T02, then T12 | Day 2 exit met | in review (feat/t16-agent); verified with a recorded model; a live OpenAI run is pending a key |
 | T17 | Run view: reducer, step timeline, report panel with citations, live SSE | Sakib | 3.5 | T15 | A live run renders end to end | todo |
 | T18 | MCP server, stdio and HTTP, read-only by default | Sakib | 1.5 | T13 | An MCP client answers "which alerts are reachable" through it | todo |
 
@@ -127,7 +127,7 @@ Exit: the full demo script runs on the hosted build; feature freeze at midnight.
 | ID | Task | Owner | Hours | Needs | Done when | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | T29 | Bug fixes from T28 only; no new features | Both | 3 | T28 | The demo script runs three times in a row | todo |
-| T30 | README: problem, schema diagram, setup, FalkorDB features used, eval table, prior art | Shaukat | 2 | T24 | A new reader can run it from the README | in review (feat/t30-triage), with `pnpm triage` as its runnable quickstart; real results on `nestjs/nest` stand in for the eval table until T24 |
+| T30 | README: problem, schema diagram, setup, FalkorDB features used, eval table, prior art | Shaukat | 2 | T24 | A new reader can run it from the README | done (PR merged), with `pnpm triage` as its runnable quickstart; real results on `nestjs/nest` stand in for the eval table until T24 |
 | T31 | Record and edit the demo video, about 3 minutes | Sakib | 3 | T29 | Uploaded; the link works when logged out | todo |
 | T32 | Blog post for the side prize | Shaukat | 2.5 | T24 | Published and linked from the README | todo |
 | T33 | Submission form, track selection, final checks | Both | 0.5 | T30–T32 | Submitted by 6:00 PM IST, confirmation saved | todo |

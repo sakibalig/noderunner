@@ -97,6 +97,11 @@ const surfaces = {
   }),
   cli: z.object({
     FALKORDB_URL: fields.FALKORDB_URL,
+    LLM_PROVIDER: fields.LLM_PROVIDER,
+    LLM_MODEL: fields.LLM_MODEL,
+    OPENAI_API_KEY: fields.OPENAI_API_KEY,
+    ANTHROPIC_API_KEY: fields.ANTHROPIC_API_KEY,
+    GEMINI_API_KEY: fields.GEMINI_API_KEY,
     GITHUB_TOKEN: fields.GITHUB_TOKEN.optional().describe(
       "Optional for public repositories; raises GitHub's rate limit",
     ),
