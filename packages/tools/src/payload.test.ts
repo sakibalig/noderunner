@@ -93,6 +93,7 @@ describe("available", () => {
     },
     clock: { now: () => 0 },
     ids: { next: () => "x" },
+    registry: { packument: async () => null },
   });
 
   const names = (actor: Parameters<typeof available>[0], access: Parameters<typeof available>[1]) =>
@@ -105,10 +106,17 @@ describe("available", () => {
       "list_alerts",
       "reachability",
       "introduced_by",
+      "plan_upgrades",
+      "owners_for",
       "record_decision",
       "read_only_cypher",
     ]);
-    expect(names("fixer", all)).toEqual(["recall_decisions", "list_alerts", "read_only_cypher"]);
+    expect(names("fixer", all)).toEqual([
+      "recall_decisions",
+      "list_alerts",
+      "owners_for",
+      "read_only_cypher",
+    ]);
     expect(names("baseline", all)).toEqual(["list_alerts"]);
     expect(names("ui", all)).toEqual(["record_decision"]);
   });
@@ -119,6 +127,8 @@ describe("available", () => {
       "list_alerts",
       "reachability",
       "introduced_by",
+      "plan_upgrades",
+      "owners_for",
       "read_only_cypher",
     ]);
     expect(names("mcp", ["read"])).toEqual(["introduced_by", "read_only_cypher"]);

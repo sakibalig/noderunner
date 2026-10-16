@@ -10,6 +10,7 @@
   "dependencies": {
     "@noderunner/core": "workspace:*",
     "@noderunner/graph": "workspace:*",
+    "@noderunner/planner": "workspace:*",
     "zod": "4.6.7"
   },
   "devDependencies": {

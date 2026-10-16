@@ -1,8 +1,10 @@
-import type { Access, Agent, Clock, Db, Ids, ToolDef, ToolName } from "@noderunner/core";
+import type { Access, Agent, Clock, Db, Ids, Registry, ToolDef, ToolName } from "@noderunner/core";
 import type { z } from "zod";
 import { listAlerts } from "./defs/alerts.ts";
 import { recordDecision } from "./defs/decide.ts";
 import { introducedBy } from "./defs/origin.ts";
+import { ownersFor } from "./defs/owners.ts";
+import { planUpgrades } from "./defs/plan.ts";
 import { readOnlyCypher } from "./defs/query.ts";
 import { reachability } from "./defs/reachability.ts";
 import { recallDecisions } from "./defs/recall.ts";
@@ -39,7 +41,7 @@ const sets: Readonly<Record<Agent, readonly ToolName[]>> = {
   ui: ["record_decision", "open_pull_request"],
 };
 
-export type Deps = { readonly db: Db; readonly clock: Clock; readonly ids: Ids };
+export type Deps = { readonly db: Db; readonly clock: Clock; readonly ids: Ids; readonly registry: Registry };
 
 /** Every built tool, in contract order. */
 export function createTools(deps: Deps): readonly AnyTool[] {
@@ -48,6 +50,8 @@ export function createTools(deps: Deps): readonly AnyTool[] {
     listAlerts(deps),
     reachability(deps),
     introducedBy(deps),
+    planUpgrades(deps),
+    ownersFor(deps),
     recordDecision(deps),
     readOnlyCypher(deps),
   ];
