@@ -9,6 +9,8 @@ import {
   GraphName,
   type Ids,
   OsvRecord,
+  type Packument,
+  type Registry,
   RunId,
   Sha,
   type ToolCtx,
@@ -95,6 +97,40 @@ export function recorded(): Advisories {
   };
 }
 
+/** The npm registry answering from fixtures/npm; a name with no file is null, as a 404 would be. */
+export function packuments(): Registry {
+  return {
+    async packument(name) {
+      let raw: string;
+      try {
+        raw = readFileSync(join(root, "fixtures/npm", `${encodeURIComponent(name)}.json`), "utf8");
+      } catch {
+        return null;
+      }
+      const parsed = z
+        .object({
+          name: z.string(),
+          versions: z.record(
+            z.string(),
+            z.object({
+              dependencies: z.record(z.string(), z.string()).optional(),
+              optionalDependencies: z.record(z.string(), z.string()).optional(),
+              peerDependencies: z.record(z.string(), z.string()).optional(),
+            }),
+          ),
+        })
+        .parse(JSON.parse(raw));
+      const versions: Packument["versions"] = Object.fromEntries(
+        Object.entries(parsed.versions).map(([v, i]) => [
+          v,
+          { deps: { ...i.peerDependencies, ...i.optionalDependencies, ...i.dependencies } },
+        ]),
+      );
+      return { name: parsed.name, versions };
+    },
+  };
+}
+
 /** A fresh verify graph holding the mini-repo after stages 2 to 4, and a triage run to hang steps on. */
 export async function seeded(db: Db, made: G[]): Promise<{ g: G; ctx: ToolCtx }> {
   const g = db.graph(GraphName.parse(`verify:${ulid().toLowerCase()}`));
@@ -119,7 +155,7 @@ export async function seeded(db: Db, made: G[]): Promise<{ g: G; ctx: ToolCtx }>
 /** The full toolbox over the real tools, with the given clock. */
 export function toolbox(db: Db, clock: Clock = manual()): Toolbox {
   return createToolbox(
-    { db, clock, ids, tools: createTools({ db, clock, ids }) },
+    { db, clock, ids, tools: createTools({ db, clock, ids, registry: packuments() }) },
     { access: ["read", "derive", "act"] },
   );
 }

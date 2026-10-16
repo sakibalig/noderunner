@@ -122,6 +122,33 @@ CREATE (x)-[:CLOSES]->(f)
 SET f.status = CASE WHEN f.status = "open" THEN "planned" ELSE f.status END
 ```
 
+## As built (T14)
+
+Three refinements to the algorithm above, each found while checking the mini-repo by hand:
+
+- **A refresh of a direct dependency counts what it fixes below it.** Besides the in-place refresh of a package,
+  each direct dependency gets a refresh candidate at `maxSatisfying` within its declared range, covering every
+  single-parent target whose chain from it resolves to an unaffected version. On the mini-repo, `npm update
+  express` to 4.22.3 pulls a `body-parser` that pins a fixed `qs`, so one refresh at cost 1 closes both reachable
+  findings, where the literal rule gave a refresh plus an override at cost 5. Bumps then start past the declared
+  range, since anything inside it is the refresh.
+- **Coverage is complete per candidate.** A bump version records every route it fixes, not only those a lower
+  version left, and an override covers every target of its package that the pinned version is not affected for,
+  since `overrides` pins every copy. Step 6's re-test then needs no predicate: coverage is recomputed from the
+  chosen candidates.
+- **No `$url`.** A repository graph holds one `Repo`, so the queries match `(:Repo)` and `PlanInput` has no `url`.
+
+Two-hop bumps are kept despite the cut order, because they are the case where one upgrade closes several findings.
+`plan.tiered` refuses planning when findings exist and none is tiered, and `plan.run` refuses an unknown run; the
+plan is written by `plan.save`. The disk cache is built as specified. `owners_for` is built here (moved from T13)
+and finds its files with the projection-form `shortestPath` instead of a variable-length pattern in `WHERE`.
+
+On `nestjs/nest` the 12 import-reachable findings get 4 upgrades at cost 7, nothing uncovered: refreshes of
+`brace-expansion` (7 findings), `protobufjs` (2), and `socket.io-parser` (1), and an override of `ws` to 8.21.0
+(2), each checked against OSV and the lockfile. It took 1.1 s cold and 28 ms warm from the disk cache. A cheaper
+fix for `ws` exists, a refresh of `socket.io`, which a workspace package declares; since only the root
+`package.json` produces `DECLARES` (T05), the planner cannot see that route.
+
 ## Registry adapter and cache
 
 `npm()` requests the abbreviated packument (`Accept: application/vnd.npm.install-v1+json`) and merges each version's

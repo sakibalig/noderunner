@@ -2,6 +2,8 @@ export { createToolbox, INPUT_CHARS, type StepHooks, type Toolbox } from "./call
 export { type Data as AlertsData, listAlerts } from "./defs/alerts.ts";
 export { type Data as DecisionData, recordDecision } from "./defs/decide.ts";
 export { type Data as OriginData, type Direct, introducedBy } from "./defs/origin.ts";
+export { type Data as OwnersData, ownersFor, type Reviewer } from "./defs/owners.ts";
+export { type Data as PlanData, planUpgrades } from "./defs/plan.ts";
 export { bounded, type Data as QueryData, guard, readOnlyCypher } from "./defs/query.ts";
 export { type Data as ReachabilityData, type Reachable, reachability } from "./defs/reachability.ts";
 export { type Data as RecallData, type Recalled, recallDecisions } from "./defs/recall.ts";
