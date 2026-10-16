@@ -103,6 +103,7 @@ describe("parseEnv", () => {
   it("runs the command-line triage with only FalkorDB, and an optional GitHub token", () => {
     expect(parseEnv("cli", { FALKORDB_URL: "redis://localhost:6379" })).toEqual({
       FALKORDB_URL: "redis://localhost:6379",
+      LLM_PROVIDER: "openai",
       CACHE_DIR: ".cache",
     });
     expect(parseEnv("cli", { FALKORDB_URL: "redis://localhost:6379", GITHUB_TOKEN: "t" }).GITHUB_TOKEN).toBe(
