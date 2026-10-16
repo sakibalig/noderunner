@@ -24,6 +24,30 @@ importers:
         specifier: 5.0.4
         version: 5.0.4(@types/node@22.20.5)(vite@8.3.4(@types/node@22.20.5)(esbuild@0.28.2)(tsx@4.23.15))
 
+  apps/cli:
+    dependencies:
+      '@noderunner/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@noderunner/graph':
+        specifier: workspace:*
+        version: link:../../packages/graph
+      '@noderunner/ingest':
+        specifier: workspace:*
+        version: link:../../packages/ingest
+      '@noderunner/planner':
+        specifier: workspace:*
+        version: link:../../packages/planner
+      '@noderunner/tools':
+        specifier: workspace:*
+        version: link:../../packages/tools
+      ulid:
+        specifier: 3.0.2
+        version: 3.0.2
+      zod:
+        specifier: 4.6.7
+        version: 4.6.7
+
   apps/web:
     dependencies:
       '@noderunner/core':

@@ -95,6 +95,13 @@ const surfaces = {
     GEMINI_API_KEY: fields.GEMINI_API_KEY,
     CACHE_DIR: fields.CACHE_DIR,
   }),
+  cli: z.object({
+    FALKORDB_URL: fields.FALKORDB_URL,
+    GITHUB_TOKEN: fields.GITHUB_TOKEN.optional().describe(
+      "Optional for public repositories; raises GitHub's rate limit",
+    ),
+    CACHE_DIR: fields.CACHE_DIR,
+  }),
 };
 
 export type Surface = keyof typeof surfaces;

@@ -9,7 +9,8 @@
   "scripts": {
     "check": "biome check . && tsc --noEmit -p tsconfig.json && tsc --noEmit -p apps/web/tsconfig.json",
     "format": "biome check --write .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "triage": "pnpm --silent --filter @noderunner/cli start"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",

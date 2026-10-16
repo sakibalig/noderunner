@@ -66,7 +66,7 @@ export function ownersFor(deps: { readonly db: Db; readonly clock: Clock }): Too
               handle,
               why: [
                 s.owned.length > 0 ? `owns ${s.owned.slice(0, 3).join(", ")}` : "",
-                s.commits > 0 ? `${s.commits} recent commits` : "",
+                s.commits > 0 ? `${s.commits} recent commit${s.commits === 1 ? "" : "s"}` : "",
               ]
                 .filter((part) => part !== "")
                 .join("; "),

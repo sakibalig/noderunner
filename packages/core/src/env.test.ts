@@ -100,4 +100,14 @@ describe("parseEnv", () => {
   it("treats a blank LLM_MODEL as unset", () => {
     expect(parseEnv("worker", { ...worker, LLM_MODEL: "" }).LLM_MODEL).toBeUndefined();
   });
+  it("runs the command-line triage with only FalkorDB, and an optional GitHub token", () => {
+    expect(parseEnv("cli", { FALKORDB_URL: "redis://localhost:6379" })).toEqual({
+      FALKORDB_URL: "redis://localhost:6379",
+      CACHE_DIR: ".cache",
+    });
+    expect(parseEnv("cli", { FALKORDB_URL: "redis://localhost:6379", GITHUB_TOKEN: "t" }).GITHUB_TOKEN).toBe(
+      "t",
+    );
+    expect(() => parseEnv("cli", {})).toThrow("FALKORDB_URL");
+  });
 });
