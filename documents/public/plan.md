@@ -83,7 +83,7 @@ Exit: one real repository in the graph, golden queries G1 to G5 correct.
 | T02 | `packages/core`: types, schemas, events, ports, env loader, fixture run | Sakib | 2 | T01 | Merged by noon | done (PR merged) |
 | T03 | `packages/graph`: connect, query, roQuery, batch, migrate | Shaukat | 1.5 | T01 | Integration test creates and reads nodes | done (PR merged) |
 | T04 | Ingest stage 1: tarball fetch and filter | Shaukat | 1.5 | T03 | Demo repository 1 fetched in under 10 s | in review (feat/t04-fetch); `nestjs/nest` as a stand-in for D6 fetched in 2.1 s |
-| T05 | Ingest stage 2: lockfile parser, Node resolution, writes | Shaukat | 3 | T04 | Nested-lockfile test passes; G1 matches | todo |
+| T05 | Ingest stage 2: lockfile parser, Node resolution, writes | Shaukat | 3 | T04 | Nested-lockfile test passes; G1 matches | in review (feat/t05-lockfile); G1 equals the raw lockfile on `nestjs/nest` (1,638 installs, 97 direct) |
 | T06 | Ingest stage 3: imports, resolution, classification, `LOADS` | Shaukat | 3 | T04 | Syntax-form tests pass; G4 correct | todo |
 | T07 | Ingest stage 4: OSV, advisory cache, `isAffected`, Findings | Shaukat | 2.5 | T05 | G2 matches `npm audit` within explained differences | todo |
 | T08 | Ingest stage 5: CODEOWNERS and git history | Sakib | 2 | T03 | G5 correct on demo repository 1 | done (PR merged) |
