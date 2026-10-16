@@ -8,6 +8,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@babel/parser": "8.0.7",
     "@noderunner/core": "workspace:*",
     "@noderunner/graph": "workspace:*",
     "ignore": "7.0.12",

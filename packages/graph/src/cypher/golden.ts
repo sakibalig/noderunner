@@ -14,3 +14,11 @@ RETURN installs, dev, count(d) AS direct`,
     direct: z.number().int().nonnegative().describe("DECLARES edges from the repository"),
   }),
 );
+
+/** G4: production files that load a package. Params: `{ package }`. */
+export const loaders = query(
+  "golden.loaders",
+  `MATCH (f:File {kind: "prod"})-[:LOADS]->(:Install)-[:OF]->(:Package {name: $package})
+RETURN DISTINCT f.path AS file ORDER BY file LIMIT 200`,
+  z.object({ file: z.string().describe("A production file path") }),
+);

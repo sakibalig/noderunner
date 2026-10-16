@@ -154,7 +154,17 @@ the LLD unchanged: `test` is `__tests__/`, `__mocks__/`, `.test.`, `.spec.`, top
 true for files named by `main`, `module`, `bin`, and every string leaf of `exports` in `package.json`, files under
 `pages/`, `app/`, `src/pages/`, `src/app/`, and `src/index.*`, `index.*`, and `server.*`. Writes are `File` with
 `CONTAINS` from the `Repo`, `IMPORTS` to a `File`, `IMPORTS {specifier}` to an existing `Package`, and `LOADS` to the
-install `resolve("", pkg)` names, all batched and stamped.
+install Node would load, all batched and stamped.
+
+`LOADS` follows Node's lookup from the importing file rather than `resolve("", pkg)`: `node_modules/<pkg>` in the
+file's folder, then in each folder above it, so `packages/web/src/page.tsx` loads `packages/web/node_modules/react`
+when it exists and the root copy otherwise. For a single-package repository the two agree. The rows are built by the
+pure `graph(files, manifest, installs)` in `src/stages/imports.ts`, sorted, with `installs` the lock paths stage 2
+returns. A bare import is recorded once per file and package, keeping the first specifier. The regex fallback only
+matches statement-level `import` and `export ... from` lines that are not type-only, bare `import "x"` lines, and
+`require()` or `import()` with a literal argument, so it cannot misread code as an import. `typeof import("x")` is a
+type and loads nothing. A monorepo that imports its own packages through tsconfig paths, such as `@nestjs/common`
+inside `nestjs/nest`, gets one `unresolved` warning per such import, because no install exists for them.
 
 **4. Advisories (T07).** Distinct `(name, version)` pairs are read from the installs and looked up in the
 `advisories` graph (`cache.ts`), where `(:PV {key: "name@version", checked_at})-[:HAS]->(:Adv {id, record,

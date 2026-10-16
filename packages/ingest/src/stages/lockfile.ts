@@ -132,7 +132,12 @@ export async function lockfile(
     readonly onProgress: (event: Extract<RunEvent, { type: "ingest.progress" }>) => void;
     readonly signal: AbortSignal;
   },
-): Promise<{ readonly installs: number; readonly warnings: readonly Warning[] }> {
+): Promise<{
+  readonly installs: number;
+  /** Every install's lock path, which stage 3 resolves imports against. */
+  readonly paths: ReadonlySet<string>;
+  readonly warnings: readonly Warning[];
+}> {
   const { g, url, sha } = input;
   const { signal } = opts;
   const built = tree(input.lock, input.manifest);
@@ -143,5 +148,9 @@ export async function lockfile(
   await g.batch(ingest.lockfile.depends, built.depends, { sha }, signal);
   await g.batch(ingest.lockfile.declares, built.declares, { sha, url }, signal);
   opts.onProgress({ type: "ingest.progress", stage: "lockfile", done: total, total });
-  return { installs: built.installs.length, warnings: built.warnings };
+  return {
+    installs: built.installs.length,
+    paths: new Set(built.installs.map((install) => install.lock_path)),
+    warnings: built.warnings,
+  };
 }
