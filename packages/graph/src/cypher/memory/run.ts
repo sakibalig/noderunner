@@ -9,3 +9,11 @@ export const start = write(
   `MERGE (r:Run {id: $id})
 ON CREATE SET r.agent = $agent, r.model = $model, r.status = "running", r.started_at = $now`,
 );
+
+/** Params: `{ id, status, report, result, unverified, tokensIn, tokensOut, now }`, with `result` a JSON string or null. */
+export const finish = write(
+  "run.finish",
+  `MATCH (r:Run {id: $id})
+SET r.status = $status, r.report = $report, r.result = $result, r.unverified = $unverified,
+    r.tokens_in = $tokensIn, r.tokens_out = $tokensOut, r.finished_at = $now`,
+);

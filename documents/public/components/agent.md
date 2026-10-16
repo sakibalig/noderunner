@@ -213,6 +213,26 @@ and go through `callTool`, so each call still has a Step, a citable id, and a pl
 matches; `read_file` returns at most 400 lines from `offset`. The fetched files are held for the run only and
 released in `finally`. Their full contract is in [eval](eval.md#baseline-tools).
 
+## As built (T16, built by Shaukat with Sakib's agreement)
+
+`runAgent` in `loop.ts`, the triage prompt and kickoff in `prompt.ts`, `validateReport` and `ResultBlock` in
+`report.ts`, and `toolsFor` and the JSON Schema `specs` in `tools.ts`, as specified above, for the triage agent. The
+fixer (T27) and baseline agents have no prompt yet; `runAgent` fails them at once. The adapters are
+`adapters/model/openai.ts` (Responses API, `store: false`, encrypted reasoning returned unchanged, `strict: false`;
+the request builder and response parser are pure and tested) and `adapters/model/recorded.ts`.
+
+Three details settled while building:
+
+- **The model needs the step id to cite.** `forModel` now sends `stepId` with every result, since the prompt asks for
+  `[s:<stepId>]` and nothing else told the model the id.
+- **The tools come in as `deps.tools`**, the same definitions the toolbox holds, so `toolsFor` filters the real set.
+- **"Still open after the plan" with no plan** is the reachable count; waived findings are not subtracted, because no
+  tool result the loop holds says which reachable findings are waived.
+
+The command line runs it as `pnpm triage <owner>/<name> --agent`, which needs `LLM_PROVIDER=openai` and
+`OPENAI_API_KEY` and checks both before ingesting. Starting a run from the web app still needs T15 (`POST /runs` and
+its stream) and T17 (the run view).
+
 ## Failures
 
 | Case | Run status | What the caller sees |
