@@ -22,3 +22,17 @@ export const loaders = query(
 RETURN DISTINCT f.path AS file ORDER BY file LIMIT 200`,
   z.object({ file: z.string().describe("A production file path") }),
 );
+
+/** G2: compare with `npm audit --json` on the same lockfile. */
+export const vulns = query(
+  "golden.vulns",
+  `MATCH (v:Vuln)-[:AFFECTS]->(i:Install)
+WITH v, i ORDER BY i.lock_path
+RETURN v.id AS vuln, v.severity AS severity, collect(i.lock_path) AS installs
+ORDER BY vuln LIMIT 500`,
+  z.object({
+    vuln: z.string().describe("The OSV id"),
+    severity: z.string().describe("The severity word"),
+    installs: z.array(z.string()).describe("The affected lock paths"),
+  }),
+);
