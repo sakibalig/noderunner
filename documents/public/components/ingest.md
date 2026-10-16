@@ -150,7 +150,7 @@ two when it starts with `@`, and keeps any subpath as `specifier`. One that is n
 Each file gets `kind` by the first matching rule, `test`, `config`, `script`, then `prod`, using the path lists of
 the LLD unchanged: `test` is `__tests__/`, `__mocks__/`, `.test.`, `.spec.`, top-level `test/`, `tests/`, `e2e/`,
 `cypress/`, `playwright/`, `.storybook/`, and `*.stories.*`, plus top-level `integration/` (added after `nestjs/nest` showed its integration tests counted as production code); `config` is `*.config.*`, `.eslintrc*`,
-`babel.config.*`, and `jest.setup.*`; and `script` is top-level `scripts/`, `tools/`, and `bench/`. `is_entry` is
+`babel.config.*`, and `jest.setup.*`; and `script` is top-level `scripts/`, `tools/`, `bench/`, `docs/`, `examples/`, `example/`, `samples/`, and `sample/` (the last five added after `nodejs/undici` showed a chain starting in a docs example and `nestjs/nest` keeps its example apps in `sample/`). `is_entry` is
 true for files named by `main`, `module`, `bin`, and every string leaf of `exports` in `package.json`, files under
 `pages/`, `app/`, `src/pages/`, `src/app/`, and `src/index.*`, `index.*`, and `server.*`. Writes are `File` with
 `CONTAINS` from the `Repo`, `IMPORTS` to a `File`, `IMPORTS {specifier}` to an existing `Package`, and `LOADS` to the

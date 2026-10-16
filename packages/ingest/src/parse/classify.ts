@@ -6,7 +6,7 @@ export type FileKind = "prod" | "test" | "script" | "config";
 const test =
   /(^|\/)(__tests__|__mocks__)\/|\.(test|spec)\.[^/]+$|^(test|tests|e2e|integration|cypress|playwright|\.storybook)\/|\.stories\.[^/]+$/;
 const config = /(^|\/)([^/]+\.config\.[^/]+|\.eslintrc[^/]*|babel\.config\.[^/]+|jest\.setup\.[^/]+)$/;
-const script = /^(scripts|tools|bench)\//;
+const script = /^(scripts|tools|bench|docs|examples?|samples?)\//;
 const conventional = /^(src\/)?(pages|app)\/|^(src\/)?(index|server)\.[^/]+$/;
 
 /** The first matching kind of test, config, script, then prod. */

@@ -1,0 +1,19 @@
+{
+  "name": "@noderunner/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "pnpm triage: ingest a repository and run the triage tools, without a model",
+  "scripts": {
+    "start": "tsx src/main.ts"
+  },
+  "dependencies": {
+    "@noderunner/core": "workspace:*",
+    "@noderunner/graph": "workspace:*",
+    "@noderunner/ingest": "workspace:*",
+    "@noderunner/planner": "workspace:*",
+    "@noderunner/tools": "workspace:*",
+    "ulid": "3.0.2",
+    "zod": "4.6.7"
+  }
+}
