@@ -91,18 +91,36 @@ describe("available", () => {
       list: async () => [],
       close: async () => {},
     },
+    clock: { now: () => 0 },
+    ids: { next: () => "x" },
   });
 
-  it("offers reachability to triage and to read-and-derive MCP, and not to ui or baseline", () => {
-    expect(available("triage", ["read", "derive", "act"], tools).map((t) => t.name)).toEqual([
+  const names = (actor: Parameters<typeof available>[0], access: Parameters<typeof available>[1]) =>
+    available(actor, access, tools).map((t) => t.name);
+
+  it("gives each actor the contract's tools that are built", () => {
+    const all = ["read", "derive", "act"] as const;
+    expect(names("triage", all)).toEqual([
+      "recall_decisions",
+      "list_alerts",
       "reachability",
+      "introduced_by",
+      "record_decision",
+      "read_only_cypher",
     ]);
-    expect(available("mcp", ["read", "derive"], tools).map((t) => t.name)).toEqual(["reachability"]);
-    expect(available("ui", ["read", "derive", "act"], tools)).toEqual([]);
-    expect(available("baseline", ["read", "derive", "act"], tools)).toEqual([]);
+    expect(names("fixer", all)).toEqual(["recall_decisions", "list_alerts", "read_only_cypher"]);
+    expect(names("baseline", all)).toEqual(["list_alerts"]);
+    expect(names("ui", all)).toEqual(["record_decision"]);
   });
 
-  it("hides a derive tool from an MCP client limited to read", () => {
-    expect(available("mcp", ["read"], tools)).toEqual([]);
+  it("keeps act tools from MCP unless writes are allowed, and derive tools from a read-only client", () => {
+    expect(names("mcp", ["read", "derive"])).toEqual([
+      "recall_decisions",
+      "list_alerts",
+      "reachability",
+      "introduced_by",
+      "read_only_cypher",
+    ]);
+    expect(names("mcp", ["read"])).toEqual(["introduced_by", "read_only_cypher"]);
   });
 });

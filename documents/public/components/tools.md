@@ -362,6 +362,27 @@ read the repository files that ingestion stage 1 fetched for the baseline run, t
 never touch the graph, and write nothing but their Step; a path outside the fetched set is a `ToolErr`. Their
 output limits are set in [eval](eval.md#baseline-tools).
 
+### As built (T13)
+
+`recall_decisions`, `list_alerts`, `introduced_by`, `record_decision`, and `read_only_cypher` are built, with their
+constants in `cypher/tools/alerts.ts`, `chain.ts`, and `decisions.ts`. `chain.introduced` takes the projection form
+with `*0..15`, so `chain.direct` is not needed. `owners_for` moves to T14, since it reads a `Plan`, and
+`rank_packages` waits until the demo path is done. The tools' `Deps` is `{ db, clock, ids }`.
+
+Free text reaches the model as `{ "quoted": "..." }`: decision reasons in `recall_decisions`, and every string in a
+`read_only_cypher` row. Lock paths, package names, file paths, and finding keys stay plain, because ingestion
+already restricts them to their schema patterns. The contract writes the stale list as `Decision & { reason:
+StaleReason }`, which collides with the decision's own `reason`; the tool returns `Decision` with `staleReason` set,
+the field core already defines.
+
+`read_only_cypher` checks the text with string literals emptied, so a write keyword inside a string passes, and
+treats a trailing `LIMIT` that is not a number, such as `LIMIT $k`, as missing. Node and edge values in its rows
+become evidence when the label's key property is present; an edge needs both endpoints in the rows.
+
+On `nestjs/nest` every tool answers in under 40 ms except `reachability` (0.6 s), and `list_alerts` returns its
+40 findings in 5,568 characters, under the 6,000-character cap. A waiver recorded on `ws` there is flagged at once
+as "worse vulnerability on same install", which is the case D6 asks of a demo repository.
+
 ## Failures
 
 Each failure is a `Fault` from [core](core.md): `ToolError` here, `GraphError`, `PlannerError`, and
