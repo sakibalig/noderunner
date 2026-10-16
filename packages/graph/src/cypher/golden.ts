@@ -1,0 +1,16 @@
+import { z } from "zod";
+import { query } from "./define.ts";
+
+/** G1: compare with the lockfile's non-root, non-link entries and `npm ls --all`. Params: `{ url }`. */
+export const counts = query(
+  "golden.counts",
+  `MATCH (i:Install)
+WITH count(i) AS installs, sum(CASE WHEN i.dev THEN 1 ELSE 0 END) AS dev
+OPTIONAL MATCH (:Repo {url: $url})-[d:DECLARES]->(:Install)
+RETURN installs, dev, count(d) AS direct`,
+  z.object({
+    installs: z.number().int().nonnegative().describe("Install nodes"),
+    dev: z.number().int().nonnegative().describe("Installs only in the dev tree"),
+    direct: z.number().int().nonnegative().describe("DECLARES edges from the repository"),
+  }),
+);

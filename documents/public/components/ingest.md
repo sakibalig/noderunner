@@ -125,6 +125,13 @@ MATCH (repo:Repo {url: $url}), (i:Install {lock_path: r.to})
 MERGE (repo)-[e:DECLARES]->(i) SET e.range = r.range, e.dev = r.dev, e.snapshot_sha = $sha
 ```
 
+The rows are built by the pure `tree(lock, manifest)` in `src/stages/lockfile.ts`, sorted by lock path, and the
+`lockfile` stage writes them. Only keys containing `node_modules/` are installs, so a workspace folder such as
+`packages/web` is not one, while `packages/web/node_modules/react` is and resolves through its own `node_modules`
+before the root's. `DECLARES` comes from the root `package.json` only, so a workspace's own dependencies are not
+"direct". A dependency listed twice keeps the strongest kind, `prod` over `optional` over `peer`. An entry with no
+version is a `skipped` warning, and an undeclared optional root dependency is not a warning.
+
 **3. Imports (T06).** Each file is parsed by `@babel/parser` with `sourceType: "unambiguous"`,
 `errorRecovery: true`, `decorators-legacy`, and `typescript` for TypeScript extensions, adding `jsx` only for `.tsx`,
 or `jsx` alone for JavaScript. An iterative walk over an explicit stack, not `@babel/traverse`, collects string

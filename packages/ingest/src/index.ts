@@ -5,4 +5,5 @@ export { Codeowners } from "./parse/codeowners.ts";
 export { type Entry, Lock } from "./parse/lock.ts";
 export { Manifest } from "./parse/manifest.ts";
 export { FETCH_LIMITS, repoUrl, type Snapshot, snapshot, type Target } from "./stages/fetch.ts";
+export { lockfile, resolve, type Tree, tree } from "./stages/lockfile.ts";
 export { HISTORY_COMMITS, people, tally } from "./stages/people.ts";
