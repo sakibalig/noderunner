@@ -27,7 +27,7 @@ Bodies are JSON and are parsed with the zod schemas in `packages/core/src/api.ts
 | `GET /repos/:owner/:name/subgraph` | `?keys=…&hops=1` | `200 { nodes: EvNode[], edges: EvEdge[] }` | Evidence nodes by stable key plus neighbours, capped at 400 nodes |
 | `POST /runs` | `{ repoId, agent, message? }` | `202 { runId }` | `agent` is `triage`, `fixer`, or `baseline`. Refused with `busy` while the repository is ingesting. A fixer run needs an approved, unshipped plan, else `unapproved` |
 | `GET /runs/:id` | — | `200 { run, steps, report, plan? }` | Rebuilt from the graph, so it survives a worker restart |
-| `GET /runs/:id/plan` | — | `200 PlanDraft` | The run's newest plan as the pull request it would open: title, Markdown body, and each upgrade with the production path behind every finding it closes. `missing` when the run proposed none |
+| `GET /runs/:id/plan` | — | `200 PlanDraft` | The run's newest plan as the pull request it would open: title, Markdown body, and each upgrade with the production path behind every finding it closes, and `shipped`, the pull request URL once opened. `missing` when the run proposed none |
 | `GET /runs/:id/events` | `Last-Event-ID` header, `?replay=1` | `text/event-stream` | Replays stored events, then streams live ones. See [events.md](events.md) |
 | `POST /plans/:id/approve` | `{ by }` | `200 { approved: true }` | Sets `Plan.approved`, `approved_by`, `approved_at`. The human approval step |
 | `POST /plans/:id/ship` | — | `202 { jobId }` | Starts a `ui` run that calls `open_pull_request`; the outcome arrives on the job stream. `unapproved` or `shipped` when refused up front |

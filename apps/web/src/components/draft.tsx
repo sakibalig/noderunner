@@ -3,6 +3,7 @@
 import { ErrorBody, PlanDraft } from "@noderunner/core";
 import { useEffect, useState } from "react";
 import { Report } from "./report.tsx";
+import { Ship } from "./ship.tsx";
 
 const none = () => null;
 
@@ -75,7 +76,7 @@ export function Draft({ runId }: { readonly runId: string }) {
       </h2>
       <Report report={draft.body} numberOf={none} selected={null} onCite={() => {}} />
       {draft.approved ? (
-        <p className="approved">Approved. The pull request opens once shipping is enabled.</p>
+        <Ship planId={draft.planId} shipped={draft.shipped} />
       ) : (
         <form
           className="approve"

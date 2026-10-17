@@ -154,6 +154,31 @@ importers:
       '@noderunner/core':
         specifier: workspace:*
         version: link:../core
+      '@noderunner/graph':
+        specifier: workspace:*
+        version: link:../graph
+      jsonc-parser:
+        specifier: 3.3.1
+        version: 3.3.1
+      semver:
+        specifier: 7.8.5
+        version: 7.8.5
+      zod:
+        specifier: 4.6.7
+        version: 4.6.7
+    devDependencies:
+      '@noderunner/ingest':
+        specifier: workspace:*
+        version: link:../ingest
+      '@types/semver':
+        specifier: 7.8.0
+        version: 7.8.0
+      falkordb:
+        specifier: 6.8.0
+        version: 6.8.0
+      tar-stream:
+        specifier: 3.2.2
+        version: 3.2.2
 
   packages/graph:
     dependencies:
@@ -1026,6 +1051,9 @@ packages:
 
   jsbi@4.3.2:
     resolution: {integrity: sha512-9fqMSQbhJykSeii05nxKl4m6Eqn2P6rOlYiS+C5Dr/HPIU/7yZxu5qzbs40tgaFORiw2Amd0mirjxatXYMkIew==}
+
+  jsonc-parser@3.3.1:
+    resolution: {integrity: sha512-HUgH65KyejrUFPvHFPbqOY0rsFip3Bo5wb4ngvdi1EpCYWUQDC5V+Y7mZws+DLkr4M//zQJoanu1SP+87Dv1oQ==}
 
   lightningcss-android-arm64@1.33.0:
     resolution: {integrity: sha512-gEpRTalKdosp4Bb8qWtc2iOgE5SeIHlpS1up9bFq2wAyYhl1UdTObYiHe98zEM9SQvSoqQZ1IQD0JNpg3Ml5pg==}
@@ -1930,6 +1958,8 @@ snapshots:
   ignore@7.0.12: {}
 
   jsbi@4.3.2: {}
+
+  jsonc-parser@3.3.1: {}
 
   lightningcss-android-arm64@1.33.0:
     optional: true

@@ -8,6 +8,7 @@ import { planUpgrades } from "./defs/plan.ts";
 import { readOnlyCypher } from "./defs/query.ts";
 import { reachability } from "./defs/reachability.ts";
 import { recallDecisions } from "./defs/recall.ts";
+import { openPullRequest, type Ship } from "./defs/ship.ts";
 
 export type AnyTool = ToolDef<z.ZodType, unknown>;
 
@@ -41,7 +42,14 @@ const sets: Readonly<Record<Agent, readonly ToolName[]>> = {
   ui: ["record_decision", "open_pull_request"],
 };
 
-export type Deps = { readonly db: Db; readonly clock: Clock; readonly ids: Ids; readonly registry: Registry };
+export type Deps = {
+  readonly db: Db;
+  readonly clock: Clock;
+  readonly ids: Ids;
+  readonly registry: Registry;
+  /** Absent where nothing ships, which leaves open_pull_request out. */
+  readonly ship?: Ship;
+};
 
 /** Every built tool, in contract order. */
 export function createTools(deps: Deps): readonly AnyTool[] {
@@ -53,6 +61,7 @@ export function createTools(deps: Deps): readonly AnyTool[] {
     planUpgrades(deps),
     ownersFor(deps),
     recordDecision(deps),
+    ...(deps.ship === undefined ? [] : [openPullRequest({ ship: deps.ship })]),
     readOnlyCypher(deps),
   ];
 }

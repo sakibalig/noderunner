@@ -33,6 +33,7 @@ const plan: Describable = {
   runId: RunId.parse("01JQZ8RN000000000000000000"),
   repoId: "nestjs/nest",
   approved: false,
+  shipped: null,
   totalCost: 5,
   uncovered: [],
   upgrades: [
@@ -120,5 +121,20 @@ suite("describe", () => {
     expect(empty.title).toBe("Noderunner: no upgrade found in nestjs/nest");
     expect(empty.body).toContain("need a manual fix");
     expect(empty.body).toContain("- `GHSA-1|qs`");
+  });
+});
+
+suite("describe with verification", () => {
+  it("reports what the re-ingest closed, what stays open, and new alerts", () => {
+    const { body } = describe(plan, {
+      targeted: 2,
+      closed: 1,
+      stillOpen: [ws.key],
+      newFindings: [findingKey("GHSA-x", "left-pad")],
+    });
+    expect(body).toContain("**1 of 2** targeted alerts closed");
+    expect(body).toContain("Still open:\n- `GHSA-96hv-2xvq-fx4p|ws`");
+    expect(body).toContain("1 new alert, none reachable from production code: `GHSA-x|left-pad`");
+    expect(body).not.toContain("Pending");
   });
 });
