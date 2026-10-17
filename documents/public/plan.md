@@ -115,7 +115,7 @@ Exit: the full demo script runs on the hosted build; feature freeze at midnight.
 | T20 | Graph canvas: layout, styles, highlight, citation linking | Sakib | 4 | T17 | Clicking a citation highlights the right path | done (PR merged) |
 | T21 | Executor: `package.json` edit, sandbox image, lockfile regeneration, Git Data API push, pull request | Shaukat | 4 | T14 | A real pull request on fork 1 | todo |
 | T22 | Verification re-ingest and the pull request description | Shaukat | 2 | T21 | The description shows correct closed counts | in progress: the pull request draft and approval are in review (feat/t22-draft); verification lands with T21 |
-| T23 | Finding drawer, waive with reason, approve and ship buttons | Sakib | 2.5 | T17 | Waive in the UI; a new run respects it | todo |
+| T23 | Finding drawer, waive with reason, approve and ship buttons | Sakib | 2.5 | T17 | Waive in the UI; a new run respects it | done: drawer and waive; approve shipped in T22, ship moves to T22b. A stale waiver now reopens its finding |
 | T24 | Eval: labels for 3 repositories, baseline tools, runner, results table | Both | 3 | T16 | `eval/results.md` generated | todo |
 | T25 | Deploy worker, web, and FalkorDB Cloud; pre-load demo repositories and runs | Sakib | 2 | T17 | Hosted smoke check passes | in review (chore/t25-deploy): image, fly.toml, and runbook ready; hosting needs the accounts |
 | T26 | Replay mode and compare page | Sakib | 1.5 | T20 | Replay plays a finished run with no model call | todo |

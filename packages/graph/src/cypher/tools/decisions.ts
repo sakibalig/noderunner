@@ -39,12 +39,15 @@ ORDER BY key, createdAt, id LIMIT 500`,
   }),
 );
 
-/** Rows: `{ id, reason }`, the stale reason or null. */
+/** Rows: `{ id, reason }`, the stale reason or null. A stale waiver reopens its finding, so it is planned again. */
 export const stale = write(
   "decisions.stale",
   `UNWIND $rows AS r
 MATCH (d:Decision {id: r.id})
-SET d.stale_reason = r.reason`,
+SET d.stale_reason = r.reason
+WITH d, r WHERE r.reason IS NOT NULL AND d.kind = "waive"
+MATCH (d)-[:ABOUT]->(x:Finding {status: "waived"})
+SET x.status = "open"`,
 );
 
 /**

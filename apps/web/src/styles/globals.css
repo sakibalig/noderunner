@@ -473,3 +473,76 @@ form.approve input {
   font-weight: 600;
   margin-top: 16px;
 }
+
+tr.on td {
+  background: var(--accent-soft);
+}
+aside.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(480px, 100vw);
+  overflow-y: auto;
+  padding: 24px 28px;
+  background: var(--surface);
+  border-left: 1px solid var(--line);
+  box-shadow: -8px 0 24px rgb(0 0 0 / 0.08);
+  z-index: 10;
+}
+aside.drawer h2.heading {
+  margin: 0 0 8px;
+}
+aside.drawer h3 {
+  margin: 20px 0 6px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+aside.drawer .close {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  font-size: 24px;
+  color: var(--muted);
+}
+aside.drawer .summary {
+  white-space: pre-wrap;
+}
+ol.chain {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 13px;
+}
+ol.history {
+  margin: 0;
+  padding-left: 20px;
+}
+ol.history li.stale {
+  color: var(--muted);
+}
+ol.history p {
+  margin: 2px 0 8px;
+}
+form.waive textarea,
+form.waive input,
+form.waive select {
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+}
+form.waive textarea {
+  width: 100%;
+  resize: vertical;
+}
+form.waive .row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+form.waive .row input {
+  flex: 1;
+  min-width: 0;
+}

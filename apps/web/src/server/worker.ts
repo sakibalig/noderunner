@@ -1,6 +1,7 @@
 import "server-only";
 import {
   type Finding,
+  FindingDetail,
   FindingList,
   type FindingQuery,
   RepoList,
@@ -38,5 +39,12 @@ export const worker = {
       `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/findings?${query}`,
     );
     return FindingList.parse(await ok(res)).findings;
+  },
+
+  async finding(owner: string, name: string, key: string): Promise<FindingDetail | null> {
+    const res = await get(
+      `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/findings/${encodeURIComponent(key)}`,
+    );
+    return res.status === 404 ? null : FindingDetail.parse(await ok(res));
   },
 };

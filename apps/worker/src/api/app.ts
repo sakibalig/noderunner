@@ -6,12 +6,14 @@ import { requestId } from "hono/request-id";
 import { ZodError } from "zod";
 import { surfaceOf, WorkerError } from "../errors.ts";
 import type { Catalog } from "../jobs/catalog.ts";
+import type { Findings } from "../jobs/findings.ts";
 import type { Limiter } from "../jobs/limit.ts";
 import type { Plans } from "../jobs/plans.ts";
 import type { Jobs } from "../jobs/queue.ts";
 import type { Archive, Runs } from "../jobs/runs.ts";
 import type { Log } from "../log.ts";
 import { auth } from "./auth.ts";
+import { findings } from "./findings.ts";
 import { health } from "./health.ts";
 import { limit } from "./limit.ts";
 import { plans } from "./plans.ts";
@@ -27,6 +29,7 @@ export type AppDeps = {
   readonly archive: Archive;
   readonly plans: Plans;
   readonly catalog: Catalog;
+  readonly findings: Findings;
   readonly limiter: Limiter;
   readonly probe: { readonly falkordb: () => Promise<boolean>; readonly model: boolean };
   readonly log: Log;
@@ -68,6 +71,7 @@ export function createApp(deps: AppDeps): Hono {
     runs({ runs: deps.runs, archive: deps.archive, jobs: deps.jobs, catalog: deps.catalog, limited }),
   );
   app.route("/", plans({ plans: deps.plans }));
+  app.route("/", findings({ findings: deps.findings }));
   app.route("/", progress(deps.jobs));
 
   app.notFound(() => {
