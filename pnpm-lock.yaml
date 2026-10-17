@@ -56,6 +56,12 @@ importers:
       '@noderunner/core':
         specifier: workspace:*
         version: link:../../packages/core
+      cytoscape:
+        specifier: 3.34.4
+        version: 3.34.4
+      cytoscape-dagre:
+        specifier: 4.0.1
+        version: 4.0.1(cytoscape@3.34.4)
       next:
         specifier: 16.4.1
         version: 16.4.1(@types/node@22.20.5)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -947,6 +953,15 @@ packages:
   csstype@3.2.3:
     resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
 
+  cytoscape-dagre@4.0.1:
+    resolution: {integrity: sha512-hyNdh8Vp1nwzBcjHnM4c71G81bFhPmQYLXD2HM9AZIvl+8TrMzWEOPW45hF/XOBQiEguPcDQzi6VrXR1XBcXOA==}
+    peerDependencies:
+      cytoscape: ^3.2.22
+
+  cytoscape@3.34.4:
+    resolution: {integrity: sha512-msY99tMY8iWTg+sIPGfSqDcPNOt4xcj+v/K/7qUFaCUxxlqnMkUYLBjRUzn9W5CU/R2hrmtJa5+UtovrEM2ctg==}
+    engines: {node: '>=0.10'}
+
   detect-libc@2.1.2:
     resolution: {integrity: sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==}
     engines: {node: '>=8'}
@@ -1828,6 +1843,12 @@ snapshots:
   cluster-key-slot@1.1.2: {}
 
   csstype@3.2.3: {}
+
+  cytoscape-dagre@4.0.1(cytoscape@3.34.4):
+    dependencies:
+      cytoscape: 3.34.4
+
+  cytoscape@3.34.4: {}
 
   detect-libc@2.1.2: {}
 

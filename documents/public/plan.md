@@ -102,7 +102,7 @@ Exit: a CLI run on demo repository 1 gives a correct plan with citations and a s
 | T14 | Planner with registry client and cache; `plan_upgrades` | Shaukat | 5 | T12 | Unit cases pass; plan on demo repository 1 checked by hand | done (PR merged); with `owners_for`; on `nestjs/nest` 4 upgrades close 12 findings at cost 7, checked by hand |
 | T15 | Run endpoints: `POST /runs`, run SSE with replay, `GET /runs/:id`, `subgraph`, `approve`, `ship`, `decisions` | Sakib | 2.5 | T09 | curl can start a run and stream it | done (PR merged); plan approve and ship move to T23 with the executor |
 | T16 | Agent loop, triage system prompt, step cap, report validator | Shaukat (taken over from Sakib, agreed) | 5 | T02, then T12 | Day 2 exit met | done (PR merged; live OpenAI run pending a key) |
-| T17 | Run view: reducer, step timeline, report panel with citations, live SSE | Sakib | 3.5 | T15 | A live run renders end to end | in review (feat/t17-view) |
+| T17 | Run view: reducer, step timeline, report panel with citations, live SSE | Sakib | 3.5 | T15 | A live run renders end to end | done (PR merged) |
 | T18 | MCP server, stdio and HTTP, read-only by default | Sakib | 1.5 | T13 | An MCP client answers "which alerts are reachable" through it | todo |
 
 ### Sat Oct 17 — Day 3, visible, acting, deployed
@@ -112,7 +112,7 @@ Exit: the full demo script runs on the hosted build; feature freeze at midnight.
 | ID | Task | Owner | Hours | Needs | Done when | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | T19 | Ingest stage 6: prune, re-ingest, Finding status; staleness rules | Shaukat | 2 | T13 | Re-ingest at a newer commit keeps decisions and flags stale ones | done (PR merged), with `ingest()` and the worker's real ingester and graph catalog; staleness rules shipped in T13 |
-| T20 | Graph canvas: layout, styles, highlight, citation linking | Sakib | 4 | T17 | Clicking a citation highlights the right path | todo |
+| T20 | Graph canvas: layout, styles, highlight, citation linking | Sakib | 4 | T17 | Clicking a citation highlights the right path | in review (feat/t20-canvas) |
 | T21 | Executor: `package.json` edit, sandbox image, lockfile regeneration, Git Data API push, pull request | Shaukat | 4 | T14 | A real pull request on fork 1 | todo |
 | T22 | Verification re-ingest and the pull request description | Shaukat | 2 | T21 | The description shows correct closed counts | todo |
 | T23 | Finding drawer, waive with reason, approve and ship buttons | Sakib | 2.5 | T17 | Waive in the UI; a new run respects it | todo |

@@ -6,6 +6,8 @@
   "description": "The Next.js UI",
   "dependencies": {
     "@noderunner/core": "workspace:*",
+    "cytoscape": "3.34.4",
+    "cytoscape-dagre": "4.0.1",
     "next": "16.4.1",
     "react": "19.3.1",
     "react-dom": "19.3.1",
