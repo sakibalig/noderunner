@@ -52,14 +52,19 @@ export function request(model: string, req: Request): Omit<ResponseCreateParamsS
     model,
     instructions: req.system,
     input,
-    tools: req.tools.map((tool) => ({
-      type: "function" as const,
-      name: tool.name,
-      description: tool.description,
-      parameters: tool.schema as Record<string, unknown>,
-      strict: false,
-    })),
-    tool_choice: "auto",
+    // A turn offered no tools, such as the report after the call cap, sends neither field.
+    ...(req.tools.length === 0
+      ? {}
+      : {
+          tools: req.tools.map((tool) => ({
+            type: "function" as const,
+            name: tool.name,
+            description: tool.description,
+            parameters: tool.schema as Record<string, unknown>,
+            strict: false,
+          })),
+          tool_choice: "auto" as const,
+        }),
     max_output_tokens: req.maxTokens,
     store: false,
     include: ["reasoning.encrypted_content"],

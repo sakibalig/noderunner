@@ -1,5 +1,8 @@
 import type { Access, Agent, Clock, Db, Ids, Registry, ToolDef, ToolName } from "@noderunner/core";
 import type { z } from "zod";
+import type { Files } from "./baseline/files.ts";
+import { readFile } from "./baseline/read.ts";
+import { searchFiles } from "./baseline/search.ts";
 import { listAlerts } from "./defs/alerts.ts";
 import { recordDecision } from "./defs/decide.ts";
 import { introducedBy } from "./defs/origin.ts";
@@ -49,6 +52,8 @@ export type Deps = {
   readonly registry: Registry;
   /** Absent where nothing ships, which leaves open_pull_request out. */
   readonly ship?: Ship;
+  /** The source files for the baseline's search_files and read_file; absent outside the evaluation. */
+  readonly files?: Files;
 };
 
 /** Every built tool, in contract order. */
@@ -63,6 +68,9 @@ export function createTools(deps: Deps): readonly AnyTool[] {
     recordDecision(deps),
     ...(deps.ship === undefined ? [] : [openPullRequest({ ship: deps.ship })]),
     readOnlyCypher(deps),
+    ...(deps.files === undefined
+      ? []
+      : [searchFiles({ files: deps.files }), readFile({ files: deps.files })]),
   ];
 }
 
