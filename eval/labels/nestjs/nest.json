@@ -1,0 +1,102 @@
+{
+  "repo": "nestjs/nest",
+  "sha": "c215fd9b4f583486c6ce39a3c43f257dc67e8329",
+  "labels": {
+    "GHSA-23hp-3jrh-7fpw|tar": "dev-only",
+    "GHSA-2gqq-gqf2-x968|undici": "dev-only",
+    "GHSA-2jfj-6hjv-fm6j|undici": "dev-only",
+    "GHSA-2m8v-j782-fhvr|socket.io-parser": "import-reachable",
+    "GHSA-34x7-hfp2-rc4v|tar": "dev-only",
+    "GHSA-35jh-r3h4-6jhm|lodash.template": "dev-only",
+    "GHSA-3jxr-9vmj-r5cp|brace-expansion": "import-reachable",
+    "GHSA-3wwx-pv8p-q78v|undici": "dev-only",
+    "GHSA-3xpg-4rpp-hhhm|undici": "dev-only",
+    "GHSA-4mjr-xmp4-gh2g|qs": "dev-only",
+    "GHSA-58qx-3vcg-4xpx|ws": "import-reachable",
+    "GHSA-6g55-p6wh-862q|postcss": "dev-only",
+    "GHSA-6j4f-fj2g-mc7p|brace-expansion": "import-reachable",
+    "GHSA-6rw7-vpxm-498p|qs": "dev-only",
+    "GHSA-72xf-g2v4-qvf3|tough-cookie": "dev-only",
+    "GHSA-73rr-hh4g-fpgx|diff": "dev-only",
+    "GHSA-7fh5-64p2-3v2j|postcss": "dev-only",
+    "GHSA-83g3-92jg-28cx|tar": "dev-only",
+    "GHSA-8436-99hf-9mmv|undici": "dev-only",
+    "GHSA-8qq5-rm4j-mr97|tar": "dev-only",
+    "GHSA-8x88-c5mf-7j5w|tar": "dev-only",
+    "GHSA-952p-6rrq-rcjv|micromatch": "dev-only",
+    "GHSA-96hv-2xvq-fx4p|ws": "import-reachable",
+    "GHSA-9ppj-qmqm-q256|tar": "dev-only",
+    "GHSA-ch52-4w7c-c8xp|http-cache-semantics": "dev-only",
+    "GHSA-f38q-mgvj-vph7|protobufjs": "import-reachable",
+    "GHSA-fjxv-7rqg-78g4|form-data": "dev-only",
+    "GHSA-fxqj-rqcc-2cmp|postcss": "dev-only",
+    "GHSA-grv7-fg5c-xmjg|braces": "dev-only",
+    "GHSA-gvwx-54wh-qm9j|tar": "dev-only",
+    "GHSA-h6ch-v84p-w6p9|diff": "dev-only",
+    "GHSA-hmw2-7cc7-3qxx|form-data": "dev-only",
+    "GHSA-hp3w-g68c-fv3c|sprintf-js": "dev-only",
+    "GHSA-j3f2-48v5-ccww|protobufjs": "import-reachable",
+    "GHSA-jxxr-4gwj-5jf2|brace-expansion": "import-reachable",
+    "GHSA-mh99-v99m-4gvg|brace-expansion": "import-reachable",
+    "GHSA-p8p7-x288-28g6|request": "dev-only",
+    "GHSA-pmjh-fq2x-6v4x|undici": "dev-only",
+    "GHSA-q2hr-2g5m-vwhr|brace-expansion": "import-reachable",
+    "GHSA-qffp-2rhf-9h96|tar": "dev-only",
+    "GHSA-qhr7-859c-m2p7|brace-expansion": "import-reachable",
+    "GHSA-qx2v-qp2m-jg93|postcss": "dev-only",
+    "GHSA-r28c-9q8g-f849|postcss": "dev-only",
+    "GHSA-r292-9mhp-454m|tar": "dev-only",
+    "GHSA-r53p-7pc4-xj5r|undici": "dev-only",
+    "GHSA-r6q2-hw4h-h46w|tar": "dev-only",
+    "GHSA-rfgv-xxqx-mfg5|undici": "dev-only",
+    "GHSA-rgw5-rvv9-x895|brace-expansion": "import-reachable",
+    "GHSA-rx4f-c7p8-82vq|undici": "dev-only",
+    "GHSA-vcc3-ghjq-m6fr|decode-uri-component": "dev-only",
+    "GHSA-vfj7-8cjw-p6xm|braces": "dev-only",
+    "GHSA-vmf3-w455-68vh|tar": "dev-only",
+    "GHSA-vpq2-c234-7xj6|@tootallnate/once": "dev-only",
+    "GHSA-w293-vg96-wgc3|undici": "dev-only",
+    "GHSA-w5hq-g745-h8pq|uuid": "dev-only",
+    "GHSA-w8wr-v893-vjvp|tar": "dev-only"
+  },
+  "corrections": [
+    {
+      "key": "GHSA-f38q-mgvj-vph7|protobufjs",
+      "tool": "dev-only",
+      "label": "import-reachable",
+      "why": "packages/microservices/server/server-grpc.ts line 134 and client/client-grpc.ts line 54 load @grpc/grpc-js at runtime with createRequire(import.meta.url)('@grpc/grpc-js'), a call the import parser does not resolve; @grpc/grpc-js 1.14.6 depends on @grpc/proto-loader ^0.8.0 (0.8.1), which depends on protobufjs ^7.5.5, installed at node_modules/protobufjs 7.6.1. The load is lazy and the package optional for users, like @fastify/static, so it is labelled the same way"
+    },
+    {
+      "key": "GHSA-j3f2-48v5-ccww|protobufjs",
+      "tool": "dev-only",
+      "label": "import-reachable",
+      "why": "packages/microservices/server/server-grpc.ts line 134 and client/client-grpc.ts line 54 load @grpc/grpc-js at runtime with createRequire(import.meta.url)('@grpc/grpc-js'), a call the import parser does not resolve; @grpc/grpc-js 1.14.6 depends on @grpc/proto-loader ^0.8.0 (0.8.1), which depends on protobufjs ^7.5.5, installed at node_modules/protobufjs 7.6.1. The load is lazy and the package optional for users, like @fastify/static, so it is labelled the same way"
+    }
+  ],
+  "checked": [
+    {
+      "key": "GHSA-58qx-3vcg-4xpx|ws",
+      "how": "packages/platform-socket.io/adapters/io-adapter.ts line 14 imports socket.io; packages/platform-socket.io depends on socket.io 4.8.4, which depends on socket.io-adapter ~2.5.2 (2.5.6), which depends on ws ~8.18.3, installed at node_modules/socket.io-adapter/node_modules/ws 8.18.3"
+    },
+    {
+      "key": "GHSA-2m8v-j782-fhvr|socket.io-parser",
+      "how": "the same io-adapter.ts import of socket.io 4.8.4, which depends on socket.io-parser ~4.2.4, installed at node_modules/socket.io-parser 4.2.6"
+    },
+    {
+      "key": "GHSA-3jxr-9vmj-r5cp|brace-expansion",
+      "how": "packages/platform-fastify/adapters/fastify-adapter.ts lines 915-918 load @fastify/static with loadPackage(() => import('@fastify/static')); @fastify/static 10.1.6 depends on glob ^13 (13.0.6), whose minimatch 10.2.5 depends on brace-expansion ^5.0.5, installed at node_modules/glob/node_modules/brace-expansion 5.0.5. The import is lazy and @fastify/static is optional for users (nest installs it as a root dev dependency), but production code loads it, which is this label's definition"
+    },
+    {
+      "key": "GHSA-3wwx-pv8p-q78v|undici",
+      "how": "dev-only: a code search of the repository finds undici only in tools/benchmarks/package-lock.json; no file under packages/ imports it"
+    },
+    {
+      "key": "GHSA-f38q-mgvj-vph7|protobufjs",
+      "how": "packages/microservices/server/server-grpc.ts line 134 and client/client-grpc.ts line 54 load @grpc/grpc-js at runtime with createRequire(import.meta.url)('@grpc/grpc-js'), a call the import parser does not resolve; @grpc/grpc-js 1.14.6 depends on @grpc/proto-loader ^0.8.0 (0.8.1), which depends on protobufjs ^7.5.5, installed at node_modules/protobufjs 7.6.1. The load is lazy and the package optional for users, like @fastify/static, so it is labelled the same way"
+    }
+  ],
+  "notes": [
+    "An independent check, written outside Noderunner, recomputed every tier: imports parsed as text from the non-test files under packages/, resolved with npm's node_modules lookup against package-lock.json, walked through dependencies and optionalDependencies, with the affected installs taken from the graph. It agreed with the tool on 54 of 56 findings; the 2 it disagreed on are the corrections.",
+    "7 of the 12 import-reachable labels (brace-expansion) rest on one judgement: fastify-adapter.ts loads @fastify/static lazily, and nest installs it only as a root dev dependency. A reader who counts only always-loaded dependencies would label those 7, and the 2 protobufjs corrections, dev-only."
+  ]
+}

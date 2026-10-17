@@ -68,7 +68,7 @@ registered for the baseline actor only (R18):
 | Tool | Input | Output | Limits |
 | --- | --- | --- | --- |
 | `search_files` | `{ text: string, glob?: string }` | `{ matches: { path, line, excerpt }[], truncated }` | Literal substring of at most 200 characters, not a regular expression, so a model-written pattern cannot backtrack; 50 matches; excerpts 200 characters |
-| `read_file` | `{ path: string, offset?: number }` | `{ path, offset, lines: string[], truncated }` | One file, 400 lines from `offset`; the path must be one of the fetched files |
+| `read_file` | `{ path: string, offset?: number }` | `{ path, offset, lines: { quoted: string }, truncated }` | One file, 400 lines from `offset`, joined and quoted as data; the path must be one of the fetched files |
 
 Both read the in-memory file set from ingestion stage 1 at the pinned commit, the same files the graph agent's
 import parser saw. Both go through `callTool`, so each call writes a Step and counts toward the 15-call cap, and
@@ -94,6 +94,34 @@ Both agents end their report with a fenced `result` block,
 agent loop parses it and stores it as `Run.result` ([agent](agent.md#report-format)); the runner reads that value and
 never parses report text itself. A run whose `Run.result` is null, because the block was missing or malformed, scores
 an empty set and is reported as such, never re-run until it passes.
+
+## As built for the hackathon
+
+The finishing plan cut the runner to what the deadline allows, and `results.md` says so in its "Method and limits"
+section:
+
+- **One repository**, `nestjs/nest` at `c215fd9`, pinned in `repos.json` (D6 stays open for the other two).
+- **Labels** come from `pnpm eval label`, which writes the tool's tiers once and refuses to overwrite; the chains
+  checked by hand against the source and the lockfile are listed in the label file's `checked` array.
+- **No re-verification of proposed upgrades**: steps 5 and the "closed after verification" metric are not built,
+  so the upgrades column counts proposals only.
+- The runner reads the repository graph as already ingested and stops if its commit is not the pinned one, rather
+  than ingesting itself; it stops on a waiver in force, and gives the toolbox no `act` access.
+- The baseline's files come from ingestion stage 1 (`snapshot`) at the pinned commit, so both agents see the same
+  source files.
+- The first attempt was stopped during its second baseline run, after the first had spent its 15 calls in one turn
+  and the agent loop ended it without a report, so it scored empty. That was a loop defect for both agents, so the
+  loop now gives a capped run one last turn with no tools to write its report. The stopped run is marked failed.
+- A second attempt was scored, then withdrawn after review: `list_alerts` showed the baseline each finding's tier
+  (the graph's answer), the model saw only 25 of the 40 listed rows, `read_file` returned about 50 of 400 lines, and
+  the baseline could not read package.json or the lockfile. The baseline now sees no tier or status, both agents
+  page through `list_alerts` with every listed row reaching the model, `read_file` returns what fits with an exact
+  `next` offset, and the baseline also reads every package.json and package-lock.json.
+- Labels: an independent check outside Noderunner's code recomputed every tier and found two findings the import
+  parser misses (`createRequire(import.meta.url)('@grpc/grpc-js')` in `packages/microservices`); they are recorded
+  as corrections, so the graph agent's recall can now fall short.
+- The runner refuses a FalkorDB that is not local, and stops on a waiver in force rather than on any `Decision`
+  node, because the demo graph keeps a stale test waiver that changes no plan.
 
 ## Metrics
 

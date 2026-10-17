@@ -14,9 +14,11 @@ import {
 import { memory } from "@noderunner/graph/cypher";
 import { type AnyTool, forModel, type StepHooks, type Toolbox } from "@noderunner/tools";
 import type { Log } from "../log.ts";
-import { kickoff, TRIAGE } from "./prompt.ts";
+import { BASELINE, kickoff, TRIAGE } from "./prompt.ts";
 import { type Result, resultOf, type StepRecord, validateReport } from "./report.ts";
 import { type AgentKind, specs, toolsFor } from "./tools.ts";
+
+const CAPPED = `You have reached the limit of ${limits.runCalls} tool calls. Write the whole report now from the results you have; you cannot call tools.`;
 
 /** One correction round is allowed before a report is stored unverified. */
 export const CORRECTIONS = 1;
@@ -29,7 +31,7 @@ export type RunOutcome = {
   readonly tokens: { readonly input: number; readonly output: number };
 };
 
-const systems: Readonly<Partial<Record<AgentKind, string>>> = { triage: TRIAGE };
+const systems: Readonly<Partial<Record<AgentKind, string>>> = { triage: TRIAGE, baseline: BASELINE };
 
 function texts(content: readonly Block[]): string {
   return content
@@ -105,7 +107,14 @@ export async function runAgent(
           if (block.type !== "tool_use") continue;
           if (calls >= limits.runCalls) {
             capped = true;
-            break;
+            results.push({
+              type: "tool_result",
+              toolUseId: block.id,
+              name: block.name,
+              content: `Not run: the limit of ${limits.runCalls} tool calls is reached.`,
+              isError: true,
+            });
+            continue;
           }
           calls += 1;
           const started = deps.clock.now();
@@ -147,10 +156,24 @@ export async function runAgent(
           });
         }
         if (capped) {
+          // One last turn with no tools, so a capped run still reports what its calls found.
           status = "capped";
-          report = texts(turn.content);
-          const verdict = validateReport(agent, report, steps);
-          unverified = !verdict.ok;
+          history.push({ role: "user", content: [...results, { type: "text", text: CAPPED }] });
+          const last = await deps.model.turn(
+            { system, tools: [], messages: history, maxTokens: limits.maxTokens },
+            (text) => emit({ type: "message.delta", text }),
+            signal,
+          );
+          tokens.input += last.usage.input;
+          tokens.output += last.usage.output;
+          deps.log.info({ runId, stop: last.stop, ...last.usage }, "agent.model.turn");
+          if (last.stop === "refusal") {
+            status = "failed";
+            report = "The model refused to continue this run.";
+            break;
+          }
+          report = texts(last.content);
+          unverified = !validateReport(agent, report, steps).ok;
           break;
         }
         history.push({ role: "user", content: results });

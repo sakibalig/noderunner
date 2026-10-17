@@ -4,7 +4,18 @@
   "private": true,
   "type": "module",
   "description": "Labels, baseline runs, the runner, and results",
-  "exports": {
-    ".": "./src/index.ts"
+  "scripts": {
+    "start": "tsx src/main.ts"
+  },
+  "dependencies": {
+    "@noderunner/core": "workspace:*",
+    "@noderunner/executor": "workspace:*",
+    "@noderunner/graph": "workspace:*",
+    "@noderunner/ingest": "workspace:*",
+    "@noderunner/planner": "workspace:*",
+    "@noderunner/tools": "workspace:*",
+    "@noderunner/worker": "workspace:*",
+    "pino": "10.4.0",
+    "zod": "4.6.7"
   }
 }

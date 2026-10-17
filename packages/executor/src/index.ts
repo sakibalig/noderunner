@@ -6,6 +6,7 @@ export { edit } from "./edit.ts";
 export { type ExecutorCode, ExecutorError } from "./errors.ts";
 export {
   type Deps,
+  members,
   type Opts,
   type Progress,
   type Reingest,

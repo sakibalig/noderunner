@@ -173,11 +173,22 @@ describe("runAgent", () => {
     expect((await g.query(stored, { id: ctx.runId }, never))[0]?.unverified).toBe(true);
   });
 
-  it("stops at 15 calls and never runs the 16th", async () => {
+  it("stops at 15 calls, never runs the 16th, and asks for the report with no tools", async () => {
     const many = Array.from({ length: 16 }, (_, i) => call(`c${i}`, "list_alerts"));
-    const { g, ctx, outcome } = await run(new Recorded([tools(...many)]));
-    expect(outcome.status).toBe("capped");
+    const model = new Recorded([tools(...many), say("the report")]);
+    const { g, ctx, outcome } = await run(model);
+    expect(outcome).toMatchObject({ status: "capped", report: "the report" });
     expect((await g.query(stored, { id: ctx.runId }, never))[0]?.steps).toHaveLength(15);
+    const last = model.requests[1];
+    expect(last?.tools).toEqual([]);
+    const skipped = last?.messages.at(-1)?.content.filter((b) => b.type === "tool_result" && b.isError);
+    expect(skipped?.map((b) => (b.type === "tool_result" ? b.toolUseId : ""))).toEqual(["c15"]);
+  });
+
+  it("fails a capped run whose final turn is refused", async () => {
+    const many = Array.from({ length: 16 }, (_, i) => call(`c${i}`, "list_alerts"));
+    const { outcome } = await run(new Recorded([tools(...many), { stop: "refusal", content: [], usage }]));
+    expect(outcome).toMatchObject({ status: "failed", result: null });
   });
 
   it("returns a bad tool input to the model as an error and carries on", async () => {

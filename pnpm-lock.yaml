@@ -134,7 +134,35 @@ importers:
         specifier: 6.8.0
         version: 6.8.0
 
-  eval: {}
+  eval:
+    dependencies:
+      '@noderunner/core':
+        specifier: workspace:*
+        version: link:../packages/core
+      '@noderunner/executor':
+        specifier: workspace:*
+        version: link:../packages/executor
+      '@noderunner/graph':
+        specifier: workspace:*
+        version: link:../packages/graph
+      '@noderunner/ingest':
+        specifier: workspace:*
+        version: link:../packages/ingest
+      '@noderunner/planner':
+        specifier: workspace:*
+        version: link:../packages/planner
+      '@noderunner/tools':
+        specifier: workspace:*
+        version: link:../packages/tools
+      '@noderunner/worker':
+        specifier: workspace:*
+        version: link:../apps/worker
+      pino:
+        specifier: 10.4.0
+        version: 10.4.0
+      zod:
+        specifier: 4.6.7
+        version: 4.6.7
 
   packages/core:
     dependencies:

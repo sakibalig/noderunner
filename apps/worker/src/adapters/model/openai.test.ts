@@ -54,6 +54,16 @@ describe("request", () => {
     expect(one.tools?.[0]).toMatchObject({ type: "function", name: "list_alerts", strict: false });
   });
 
+  it("sends no tools and no tool_choice for a turn offered no tools", () => {
+    const req = request("gpt-5", {
+      system: TRIAGE,
+      tools: [],
+      maxTokens: 16_000,
+      messages: [{ role: "user", content: [{ type: "text", text: "Write the report." }] }],
+    });
+    expect("tools" in req || "tool_choice" in req).toBe(false);
+  });
+
   it("sends reasoning and function calls back as they came, and tool results as function_call_output", () => {
     const history: Message[] = [
       { role: "user", content: [{ type: "text", text: "Triage a/b." }] },

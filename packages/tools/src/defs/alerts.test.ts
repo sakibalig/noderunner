@@ -4,6 +4,7 @@ import { query, write } from "@noderunner/graph/cypher";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { z } from "zod";
 import { seeded, silent, toolbox } from "../fixture.ts";
+import { forModel } from "../payload.ts";
 
 const url = process.env.FALKORDB_URL ?? "redis://localhost:6379";
 const never = new AbortController().signal;
@@ -81,7 +82,34 @@ describe("list_alerts", () => {
       "GHSA-rv95-896h-c2vc|express",
       "GHSA-vh95-rmgr-6w4m|minimist",
     ]);
-    expect(result.summary).toContain("the 40 most severe listed");
+    expect(result.summary).toContain("findings 1 to 40 listed, most severe first; call again with offset 40");
     expect((await g.query(found, { runId: ctx.runId }, never)).length).toBe(40);
+
+    const rest = await toolbox(db).callTool("list_alerts", { offset: 40 }, ctx, silent);
+    expect(rest.ok && (rest.data as { from: number; findings: unknown[] })).toMatchObject({ from: 40 });
+    expect(rest.ok && (rest.data as { findings: unknown[] }).findings).toHaveLength(5);
+  });
+
+  it("hides the graph's tier and status from the baseline", async () => {
+    const { ctx } = await seeded(db, made);
+    const result = await toolbox(db).callTool("list_alerts", {}, { ...ctx, actor: "baseline" }, silent);
+    const findings = result.ok ? (result.data as { findings: object[] }).findings : [];
+    expect(findings.length).toBeGreaterThan(0);
+    expect(findings.every((f) => !("tier" in f) && !("status" in f))).toBe(true);
+  });
+
+  it("lists only as many findings as reach the model whole", async () => {
+    const { g, ctx } = await seeded(db, made);
+    const rows = Array.from({ length: 41 }, (_, i) => ({
+      key: `LOW-${String(i).padStart(2, "0")}|${"a-rather-long-scoped-package-name".repeat(2)}${i}`,
+      id: `LOW-${String(i).padStart(2, "0")}`,
+      pkg: `${"a-rather-long-scoped-package-name".repeat(2)}${i}`,
+    }));
+    await g.batch(lowFindings, rows, {}, never);
+    const result = await toolbox(db).callTool("list_alerts", {}, ctx, silent);
+    const listed = result.ok ? (result.data as { findings: unknown[] }).findings.length : 0;
+    expect(listed).toBeLessThan(40);
+    expect(JSON.parse(forModel("list_alerts", result)).omitted).toBeUndefined();
+    expect(result.ok && result.summary).toContain(`findings 1 to ${listed} listed`);
   });
 });

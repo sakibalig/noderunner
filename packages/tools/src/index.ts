@@ -1,3 +1,6 @@
+export { type Files, glob } from "./baseline/files.ts";
+export { LINES, READ_CHARS, readFile } from "./baseline/read.ts";
+export { MATCHES, searchFiles } from "./baseline/search.ts";
 export { createToolbox, INPUT_CHARS, type StepHooks, type Toolbox } from "./call.ts";
 export { type Data as AlertsData, listAlerts } from "./defs/alerts.ts";
 export { type Data as DecisionData, recordDecision } from "./defs/decide.ts";

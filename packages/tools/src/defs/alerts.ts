@@ -6,14 +6,24 @@ import { Collector } from "../evidence.ts";
 const { alerts } = tools;
 
 const Input = z
-  .object({ minSeverity: Severity.optional().describe("Leave out findings below this severity") })
+  .object({
+    minSeverity: Severity.optional().describe("Leave out findings below this severity"),
+    offset: z.number().int().min(0).optional().describe("Skip this many findings, to page through the list"),
+  })
   .strict();
+
+/** The baseline sees a finding without the graph's tier and status, which are the answers it is scored on. */
+type Listed = Omit<Finding, "tier" | "status"> & Partial<Pick<Finding, "tier" | "status">>;
 
 export type Data = {
   readonly total: number;
   readonly bySeverity: Readonly<Record<Severity, number>>;
-  readonly findings: readonly Finding[];
+  readonly from: number;
+  readonly findings: readonly Listed[];
 };
+
+/** Leaves room in `limits.modelChars` for the result's envelope, so every listed row reaches the model. */
+const PAGE_CHARS = limits.modelChars - 800;
 
 /** Lists open findings, most severe first, and records that the run saw them. */
 export function listAlerts(deps: { readonly db: Db }): ToolDef<typeof Input, Data> {
@@ -21,7 +31,8 @@ export function listAlerts(deps: { readonly db: Db }): ToolDef<typeof Input, Dat
     name: "list_alerts",
     description:
       "Lists every finding that is not fixed, most severe first, with up to five affected installs each. " +
-      `Returns the total, a count per severity, and the ${limits.alertRows} most severe findings.`,
+      `Returns the total, a count per severity, and a page of at most ${limits.alertRows} findings; call again ` +
+      "with offset to see the next page.",
     input: Input,
     access: "derive",
     timeoutMs: limits.toolMs,
@@ -29,7 +40,28 @@ export function listAlerts(deps: { readonly db: Db }): ToolDef<typeof Input, Dat
       const g = deps.db.graph(ctx.graph);
       const minRank = input.minSeverity === undefined ? 0 : rank(input.minSeverity);
       const rows = await g.query(alerts.list, { minRank }, ctx.signal);
-      const shown = rows.slice(0, limits.alertRows);
+      const from = Math.min(input.offset ?? 0, rows.length);
+      const listed = (row: (typeof rows)[number]): Listed => {
+        const finding = Finding.parse({
+          key: row.key,
+          vulnId: row.vulnId,
+          package: row.package,
+          installs: row.installs,
+          severity: row.severity,
+          tier: row.tier,
+          status: row.status,
+        });
+        if (ctx.actor !== "baseline") return finding;
+        const { tier: _tier, status: _status, ...rest } = finding;
+        return rest;
+      };
+      const findings: Listed[] = [];
+      for (const row of rows.slice(from, from + limits.alertRows)) {
+        const next = listed(row);
+        if (findings.length > 0 && JSON.stringify([...findings, next]).length > PAGE_CHARS) break;
+        findings.push(next);
+      }
+      const shown = rows.slice(from, from + findings.length);
       await g.batch(
         alerts.found,
         shown.map((row) => ({ key: row.key })),
@@ -64,24 +96,18 @@ export function listAlerts(deps: { readonly db: Db }): ToolDef<typeof Input, Dat
           }
         });
       }
-      const findings = shown.map((row) =>
-        Finding.parse({
-          key: row.key,
-          vulnId: row.vulnId,
-          package: row.package,
-          installs: row.installs,
-          severity: row.severity,
-          tier: row.tier,
-          status: row.status,
-        }),
-      );
-      const more = rows.length - shown.length;
+      const after = from + shown.length;
       return {
-        data: { total: rows.length, bySeverity, findings },
+        data: { total: rows.length, bySeverity, from, findings },
         summary:
           `${rows.length} open findings: ${bySeverity.critical} critical, ${bySeverity.high} high, ` +
           `${bySeverity.moderate} moderate, ${bySeverity.low} low, ${bySeverity.unknown} unknown` +
-          (more > 0 ? `; the ${shown.length} most severe listed` : ""),
+          (shown.length === 0 && rows.length > 0
+            ? `; none listed past offset ${from}`
+            : shown.length < rows.length
+              ? `; findings ${from + 1} to ${after} listed, most severe first` +
+                (after < rows.length ? `; call again with offset ${after} for the rest` : "")
+              : ""),
         evidence: evidence.done(),
       };
     },
