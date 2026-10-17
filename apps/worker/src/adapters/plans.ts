@@ -6,6 +6,7 @@ import {
   type G,
   PlanDraft,
   Severity,
+  Tier,
 } from "@noderunner/core";
 import { describe } from "@noderunner/executor";
 import { api } from "@noderunner/graph/cypher";
@@ -42,9 +43,9 @@ export class GraphPlans implements Plans {
   }
 
   async #draft(g: G, repoId: string, planId: string, signal: AbortSignal): Promise<PlanDraft | null> {
+    const [head] = await g.query(api.plans.header, { planId }, signal);
+    if (head === undefined) return null;
     const rows = await g.query(api.plans.detail, { planId }, signal);
-    const first = rows[0];
-    if (first === undefined) return null;
     const paths = new Map((await g.query(api.plans.paths, { planId }, signal)).map((p) => [p.key, p]));
     const upgrades: DraftUpgrade[] = rows.map((row) => ({
       kind: row.kind,
@@ -57,10 +58,12 @@ export class GraphPlans implements Plans {
         if (c.key === null) return [];
         const path = paths.get(c.key);
         const severity = Severity.safeParse(c.severity);
+        const tier = Tier.safeParse(c.tier);
         return [
           {
             key: FindingKey.parse(c.key),
             severity: severity.success ? severity.data : "unknown",
+            tier: tier.success ? tier.data : null,
             file: path?.file ?? null,
             chain: path?.chain ?? [],
           },
@@ -72,11 +75,11 @@ export class GraphPlans implements Plans {
     }));
     const base = {
       planId,
-      runId: first.runId,
+      runId: head.runId,
       repoId,
-      approved: first.approved === true,
-      totalCost: first.totalCost,
-      uncovered: first.uncovered ?? [],
+      approved: head.approved === true,
+      totalCost: head.totalCost,
+      uncovered: head.uncovered ?? [],
       upgrades,
     };
     return PlanDraft.parse({ ...base, ...describe(PlanDraft.omit({ title: true, body: true }).parse(base)) });

@@ -9,29 +9,39 @@ RETURN p.id AS planId ORDER BY p.created_at DESC LIMIT 1`,
   z.object({ planId: z.string() }),
 );
 
-/** Params: `{ planId }`. Each upgrade with the findings it closes and its suggested reviewers. */
-export const detail = query(
-  "plans.detail",
-  `MATCH (run:Run)-[:PROPOSED]->(p:Plan {id: $planId})-[:INCLUDES]->(u:Upgrade)
-OPTIONAL MATCH (u)-[:CLOSES]->(x:Finding)
-WITH run, p, u, collect(DISTINCT {key: x.key, severity: x.severity}) AS closes
-OPTIONAL MATCH (u)-[r:REVIEW_BY]->(person:Person)
-RETURN run.id AS runId, p.approved AS approved, p.total_cost AS totalCost, p.uncovered AS uncovered,
-       u.kind AS kind, u.package AS package, u.from AS from, u.to AS to, u.semver_jump AS jump, u.cost AS cost,
-       closes, collect(DISTINCT {handle: person.handle, why: r.why}) AS reviewers
-ORDER BY package, to LIMIT 200`,
+/** Params: `{ planId }`. The plan itself, whether or not it includes any upgrade. */
+export const header = query(
+  "plans.header",
+  `MATCH (run:Run)-[:PROPOSED]->(p:Plan {id: $planId})
+RETURN run.id AS runId, p.approved AS approved, p.total_cost AS totalCost, p.uncovered AS uncovered LIMIT 1`,
   z.object({
     runId: z.string(),
     approved: z.boolean().nullable(),
     totalCost: z.number(),
     uncovered: z.array(z.string()).nullable(),
+  }),
+);
+
+/** Params: `{ planId }`. Each upgrade with the findings it closes and its suggested reviewers; none for an empty plan. */
+export const detail = query(
+  "plans.detail",
+  `MATCH (:Plan {id: $planId})-[:INCLUDES]->(u:Upgrade)
+OPTIONAL MATCH (u)-[:CLOSES]->(x:Finding)
+WITH u, collect(DISTINCT {key: x.key, severity: x.severity, tier: x.tier}) AS closes
+OPTIONAL MATCH (u)-[r:REVIEW_BY]->(person:Person)
+RETURN u.kind AS kind, u.package AS package, u.from AS from, u.to AS to, u.semver_jump AS jump, u.cost AS cost,
+       closes, collect(DISTINCT {handle: person.handle, why: r.why}) AS reviewers
+ORDER BY package, to LIMIT 200`,
+  z.object({
     kind: z.enum(["refresh", "bump", "override"]),
     package: z.string(),
     from: z.string(),
     to: z.string(),
     jump: z.enum(["patch", "minor", "major"]),
     cost: z.number(),
-    closes: z.array(z.object({ key: z.string().nullable(), severity: z.string().nullable() })),
+    closes: z.array(
+      z.object({ key: z.string().nullable(), severity: z.string().nullable(), tier: z.string().nullable() }),
+    ),
     reviewers: z.array(z.object({ handle: z.string().nullable(), why: z.string().nullable() })),
   }),
 );
@@ -50,15 +60,20 @@ WHERE p IS NOT NULL
 WITH x, f, p ORDER BY length(p), f.path
 WITH x, head(collect({file: f.path, chain: [n IN nodes(p) | n.name + "@" + n.version]})) AS best
 RETURN x.key AS key, best.file AS file, best.chain AS chain
-ORDER BY key LIMIT 500`,
+ORDER BY key LIMIT 2000`,
   z.object({ key: z.string(), file: z.string(), chain: z.array(z.string()).min(1) }),
 );
 
-/** Params: `{ planId, by, now }`. Marks the plan approved; returns no row when it does not exist. */
+/**
+ * Params: `{ planId, by, now }`. Marks the plan approved, keeping the first approver and time if it already was;
+ * returns no row when it does not exist.
+ */
 export const approve = query(
   "plans.approve",
   `MATCH (p:Plan {id: $planId})
-SET p.approved = true, p.approved_by = $by, p.approved_at = $now
+SET p.approved_by = CASE WHEN p.approved = true THEN p.approved_by ELSE $by END,
+    p.approved_at = CASE WHEN p.approved = true THEN p.approved_at ELSE $now END,
+    p.approved = true
 RETURN p.id AS planId`,
   z.object({ planId: z.string() }),
 );

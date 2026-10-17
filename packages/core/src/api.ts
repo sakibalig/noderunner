@@ -192,6 +192,7 @@ export const DraftUpgrade = z.object({
     z.object({
       key: FindingKey,
       severity: Severity,
+      tier: Tier.nullable(),
       file: z.string().nullable().describe("The production file the shortest path starts from; null if none"),
       chain: z.array(z.string()).describe("name@version steps from the loaded install to the vulnerable one"),
     }),

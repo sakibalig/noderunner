@@ -3,6 +3,7 @@ import {
   findingKey,
   graphName,
   type IngestReport,
+  PlanDraft,
   type RepoRef,
   type RunEvent,
   type Stage,
@@ -602,7 +603,7 @@ describe("plans", () => {
   };
   const approved: string[] = [];
   const plans: Plans = {
-    forRun: async (runId) => (runId === draft.runId ? (draft as never) : null),
+    forRun: async (runId) => (runId === draft.runId ? PlanDraft.parse(draft) : null),
     approve: async (planId, by) => {
       if (planId !== draft.planId) return false;
       approved.push(by);

@@ -26,12 +26,14 @@ export function Draft({ runId }: { readonly runId: string }) {
         const res = await fetch(`/api/runs/${encodeURIComponent(runId)}/plan`);
         if (!alive) return;
         if (res.status === 404) return setLoad({ kind: "none" });
-        const parsed = PlanDraft.safeParse(await res.json());
-        setLoad(
-          parsed.success
-            ? { kind: "ready", draft: parsed.data }
-            : { kind: "failed", message: "Unexpected plan" },
-        );
+        const body: unknown = await res.json();
+        const parsed = PlanDraft.safeParse(body);
+        if (parsed.success) return setLoad({ kind: "ready", draft: parsed.data });
+        const failure = ErrorBody.safeParse(body);
+        setLoad({
+          kind: "failed",
+          message: failure.success ? failure.data.error.message : "The plan could not be read",
+        });
       } catch {
         if (alive) setLoad({ kind: "failed", message: "The worker is unreachable" });
       }
