@@ -109,6 +109,27 @@ describe("parse", () => {
     expect(turn.usage).toEqual({ input: 50, output: 7, cached: 32 });
   });
 
+  it("drops the SDK's parsed_arguments and parsed fields, which the API rejects when they are sent back", () => {
+    const streamed = { ...fnCall, parsed_arguments: {} };
+    const message = {
+      id: "m",
+      type: "message",
+      role: "assistant",
+      status: "completed",
+      content: [{ type: "output_text", text: "hi", annotations: [], parsed: null }],
+    };
+    const turn = parse(response([streamed, message]));
+    expect(turn.content[0]).toMatchObject({ carry: { raw: fnCall } });
+    expect(JSON.stringify(turn.content)).not.toMatch(/parsed/);
+    const echoed = request("gpt-5", {
+      system: "s",
+      tools: [],
+      maxTokens: 10,
+      messages: [{ role: "assistant", content: turn.content }],
+    });
+    expect(JSON.stringify(echoed.input)).not.toMatch(/parsed/);
+  });
+
   it("ends on a text message, stops at the output limit, and fails on a refusal", () => {
     const text = {
       id: "m",
