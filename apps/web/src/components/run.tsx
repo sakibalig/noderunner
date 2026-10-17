@@ -3,6 +3,7 @@
 import { RunEvent } from "@noderunner/core";
 import { useCallback, useEffect, useMemo, useReducer } from "react";
 import { initial, reducer } from "../state/reducer.ts";
+import { Canvas } from "./canvas.tsx";
 import { Report } from "./report.tsx";
 import { Timeline } from "./timeline.tsx";
 
@@ -65,6 +66,17 @@ export function Run({ runId, replay }: { readonly runId: string; readonly replay
         <span> · {steps.length} tool calls</span>
         {state.graph.nodes.length > 0 ? <span> · {state.graph.nodes.length} graph nodes touched</span> : null}
       </p>
+      <section className="panel graph">
+        <h2>
+          Evidence graph
+          {selected ? (
+            <span className="hint"> · step {state.steps[selected]?.seq} highlighted</span>
+          ) : (
+            <span className="hint"> · click a step or a citation</span>
+          )}
+        </h2>
+        <Canvas graph={state.graph} highlight={state.highlight} />
+      </section>
       <div className="panes">
         <section className="panel">
           <h2>Steps</h2>
