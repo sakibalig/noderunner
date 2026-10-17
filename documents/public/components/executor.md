@@ -154,6 +154,16 @@ others SHOULD. `--user` is the worker's own non-root id, so the container can wr
 else. The folder holds no `.npmrc`, so the registry is the public default. The run is killed with `docker kill`
 after 120 seconds or on abort, and the folder is removed in `finally`.
 
+**As built (D14, local hosting).** `Npm` in `adapters/npm.ts` runs the same two npm commands as a child process:
+`spawn` with an argument array and no shell, in a fresh `mkdtemp` folder, with an environment of only `PATH`, `HOME`
+(the folder), and the npm cache, killed after 120 seconds or on abort, and removed in `finally`. The folder holds the
+edited `package.json`, the lockfile, and the `package.json` of every workspace the lockfile lists (paths checked to
+stay inside the folder), so npm keeps the workspace entries; no other repository file is written. When strict peer
+resolution fails, as it does for `nestjs/nest`, both commands are retried once with `--legacy-peer-deps`. An
+override of a package that is also a direct dependency is written as `$<name>`, npm's reference to the root's own
+spec, because npm refuses any other value (`EOVERRIDE`); when the root spec starts below the fixed version it is
+refused with `range`.
+
 `--network bridge` lets npm reach any destination, not only the registry; that egress is recorded as a known gap in
 [architecture.md](../architecture.md#15-known-gaps) (R25), and `--ignore-scripts` with the absence of repository
 code is what keeps regeneration safe. Where the sandbox runs on the hosted build, which has no Docker daemon, is

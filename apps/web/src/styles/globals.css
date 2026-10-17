@@ -546,3 +546,9 @@ form.waive .row input {
   flex: 1;
   min-width: 0;
 }
+.ship {
+  margin-top: 16px;
+}
+.ship .approved {
+  margin-top: 0;
+}

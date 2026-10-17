@@ -13,10 +13,13 @@ RETURN p.id AS planId ORDER BY p.created_at DESC LIMIT 1`,
 export const header = query(
   "plans.header",
   `MATCH (run:Run)-[:PROPOSED]->(p:Plan {id: $planId})
-RETURN run.id AS runId, p.approved AS approved, p.total_cost AS totalCost, p.uncovered AS uncovered LIMIT 1`,
+OPTIONAL MATCH (p)-[:SHIPPED_AS]->(pr:PullRequest)
+RETURN run.id AS runId, p.approved AS approved, p.total_cost AS totalCost, p.uncovered AS uncovered,
+       pr.url AS shipped LIMIT 1`,
   z.object({
     runId: z.string(),
     approved: z.boolean().nullable(),
+    shipped: z.string().nullable(),
     totalCost: z.number(),
     uncovered: z.array(z.string()).nullable(),
   }),

@@ -8,6 +8,15 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@noderunner/core": "workspace:*"
+    "@noderunner/core": "workspace:*",
+    "@noderunner/graph": "workspace:*",
+    "semver": "7.8.5",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@noderunner/ingest": "workspace:*",
+    "@types/semver": "7.8.0",
+    "falkordb": "6.8.0",
+    "tar-stream": "3.2.2"
   }
 }

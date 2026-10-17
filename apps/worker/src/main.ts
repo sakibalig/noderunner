@@ -1,5 +1,7 @@
+import { join } from "node:path";
 import { serve } from "@hono/node-server";
 import { EnvError, llmConfig, llmKey, parseEnv } from "@noderunner/core";
+import { GitData, Npm, type Reingest, shipper } from "@noderunner/executor";
 import { connect } from "@noderunner/graph";
 import { GitHistory, GitHub, ingest, OSV } from "@noderunner/ingest";
 import { npm } from "@noderunner/planner";
@@ -12,6 +14,7 @@ import { GraphFindings } from "./adapters/findings.ts";
 import { OpenAIModel } from "./adapters/model/openai.ts";
 import { GraphPlans } from "./adapters/plans.ts";
 import { reachable } from "./adapters/probe.ts";
+import { GraphShipments } from "./adapters/shipments.ts";
 import { runAgent } from "./agent/loop.ts";
 import { createApp } from "./api/app.ts";
 import type { Ingester } from "./jobs/catalog.ts";
@@ -55,11 +58,27 @@ const ingester: Ingester = (repo, { onProgress, signal }) =>
   );
 const jobs = new Jobs({ ingest: ingester, clock: systemClock, ids: ulidIds, log });
 
+const reingest: Reingest = async (repo, override, runId, signal) => {
+  await ingest(
+    repo,
+    { db, forge, advisories: osv, clock: systemClock },
+    { target: { kind: "verify", runId, override }, onProgress: () => {}, signal },
+  );
+};
+const ship = shipper({
+  db,
+  forge: new GitData({ token: env.GITHUB_TOKEN }),
+  sandbox: new Npm({ cache: join(env.CACHE_DIR, "npm") }),
+  clock: systemClock,
+  reingest,
+  target: env.PR_TARGET_OWNER,
+});
 const tools = createTools({
   db,
   clock: systemClock,
   ids: ulidIds,
   registry: npm({ dir: env.CACHE_DIR, clock: systemClock }),
+  ship,
 });
 const toolbox = createToolbox(
   { db, clock: systemClock, ids: ulidIds, tools },
@@ -99,6 +118,7 @@ const app = createApp({
   plans: new GraphPlans(db, systemClock),
   catalog: new GraphCatalog(db),
   findings: new GraphFindings({ db, clock: systemClock, ids: ulidIds, toolbox }),
+  shipments: new GraphShipments({ db, clock: systemClock, ids: ulidIds, toolbox, log }),
   limiter: new Limiter(RATE, systemClock),
   probe: { falkordb: reachable(env.FALKORDB_URL), model: key.length > 0 },
   log,

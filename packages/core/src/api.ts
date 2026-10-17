@@ -207,6 +207,7 @@ export const PlanDraft = z.object({
   runId: RunId,
   repoId: RepoId,
   approved: z.boolean(),
+  shipped: z.url().nullable().describe("The pull request URL once shipped"),
   totalCost: z.number(),
   uncovered: z.array(z.string()),
   upgrades: z.array(DraftUpgrade),

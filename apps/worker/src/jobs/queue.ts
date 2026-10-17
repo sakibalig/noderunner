@@ -22,12 +22,16 @@ export function ends(event: RunEvent): boolean {
 
 type Job = { readonly ring: Ring; finishedAt: number | null };
 
-/** Schedules ingestions and serves their event streams. Runs and shipments arrive with T15. */
+/** A shipment's work: emits its steps and ends with `pr.opened`, `pr.refused`, or `job.failed`. */
+export type Shipping = (emit: (event: RunEvent) => void, signal: AbortSignal) => Promise<void>;
+
+/** Schedules ingestions and shipments and serves their event streams. */
 export class Jobs {
   readonly #options: typeof DEFAULTS;
   readonly #queue: PQueue;
   readonly #jobs = new Map<string, Job>();
   readonly #ingesting = new Set<string>();
+  readonly #shipping = new Set<string>();
   readonly #shutdown = new AbortController();
 
   constructor(
@@ -59,6 +63,24 @@ export class Jobs {
     this.#jobs.set(jobId, job);
     this.#ingesting.add(repoId);
     void this.#queue.add(() => this.#run(jobId, job, repo, repoId));
+    return { jobId };
+  }
+
+  /**
+   * Starts a shipment of a plan.
+   * @throws WorkerError `busy` while the same plan is shipping or the queue is full.
+   */
+  ship(planId: string, work: Shipping): { readonly jobId: string } {
+    if (this.#shipping.has(planId))
+      throw new WorkerError("busy", "job.busy", "This plan is already shipping");
+    if (this.#queue.size >= this.#options.maxPending)
+      throw new WorkerError("busy", "job.queue", "Too many jobs are waiting; try again shortly");
+    this.#sweep();
+    const jobId = this.deps.ids.next();
+    const job: Job = { ring: new Ring(limits.ringEvents, this.#options.subscribers), finishedAt: null };
+    this.#jobs.set(jobId, job);
+    this.#shipping.add(planId);
+    void this.#queue.add(() => this.#ship(jobId, job, planId, work));
     return { jobId };
   }
 
@@ -117,6 +139,25 @@ export class Jobs {
     } finally {
       job.finishedAt = this.deps.clock.now();
       this.#ingesting.delete(repoId);
+    }
+  }
+
+  async #ship(jobId: string, job: Job, planId: string, work: Shipping): Promise<void> {
+    const { log } = this.deps;
+    const deadline = AbortSignal.timeout(this.#options.deadlineMs);
+    const signal = AbortSignal.any([this.#shutdown.signal, deadline]);
+    log.info({ jobId, planId }, "executor.ship.started");
+    try {
+      await work((event) => job.ring.push(event), signal);
+    } catch (error) {
+      const failure = deadline.aborted
+        ? { code: "upstream" as const, message: "Shipping timed out" }
+        : surfaceOf(error, "Shipping failed");
+      job.ring.push({ type: "job.failed", ...failure });
+      log.error({ jobId, planId, code: failure.code, err: error }, "executor.ship.failed");
+    } finally {
+      job.finishedAt = this.deps.clock.now();
+      this.#shipping.delete(planId);
     }
   }
 

@@ -7,6 +7,7 @@ export { type Data as PlanData, planUpgrades } from "./defs/plan.ts";
 export { bounded, type Data as QueryData, guard, readOnlyCypher } from "./defs/query.ts";
 export { type Data as ReachabilityData, type Reachable, reachability } from "./defs/reachability.ts";
 export { type Data as RecallData, type Recalled, recallDecisions } from "./defs/recall.ts";
+export { openPullRequest, type Ship } from "./defs/ship.ts";
 export { type ToolCode, ToolError } from "./errors.ts";
 export { Collector, cap } from "./evidence.ts";
 export { forModel } from "./payload.ts";

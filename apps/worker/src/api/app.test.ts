@@ -17,6 +17,7 @@ import { Limiter } from "../jobs/limit.ts";
 import type { Plans } from "../jobs/plans.ts";
 import { type DEFAULTS, Jobs } from "../jobs/queue.ts";
 import { type Archive, type Runner, Runs } from "../jobs/runs.ts";
+import type { Shipments } from "../jobs/shipments.ts";
 import type { Log } from "../log.ts";
 import { createApp } from "./app.ts";
 
@@ -43,10 +44,12 @@ function report(repo: RepoRef): IngestReport {
 
 const noPlans: Plans = { forRun: async () => null, approve: async () => false };
 const noFindings: Findings = { detail: async () => null, decide: async () => null };
+const noShipments: Shipments = { locate: async () => null, ship: async () => {} };
 
 type Setup = {
   plans?: Plans;
   findings?: Findings;
+  shipments?: Shipments;
   run?: Runner;
   ingest?: Ingester;
   falkordb?: boolean;
@@ -140,6 +143,7 @@ function setup(options: Setup = {}) {
     archive,
     plans: options.plans ?? noPlans,
     findings: options.findings ?? noFindings,
+    shipments: options.shipments ?? noShipments,
     catalog,
     limiter: new Limiter({ limit: 3, windowMs: 3_600_000, clients: 100 }, clock),
     probe: { falkordb: async () => options.falkordb ?? true, model: true },
@@ -600,6 +604,7 @@ describe("plans", () => {
     runId: "01JQZ8RN000000000000000000",
     repoId: "acme/api",
     approved: false,
+    shipped: null,
     totalCost: 1,
     uncovered: [],
     upgrades: [],
@@ -635,6 +640,57 @@ describe("plans", () => {
     expect((await app.request(`/plans/${draft.planId}/approve`, post({ by: "not a handle" }))).status).toBe(
       400,
     );
+  });
+});
+
+describe("shipping", () => {
+  const graph = graphName({ owner: "acme", name: "api" });
+  const ready = "01JQZ8PAN00000000000000001";
+  const states: Record<string, { approved: boolean; shipped: string | null }> = {
+    [ready]: { approved: true, shipped: null },
+    "01JQZ8PAN00000000000000002": { approved: false, shipped: null },
+    "01JQZ8PAN00000000000000003": { approved: true, shipped: "https://github.com/sakibalig/api/pull/1" },
+  };
+  const verification = { targeted: 1, closed: 1, stillOpen: [], newFindings: [] };
+  const shipped: string[] = [];
+  const shipments = (wait = Promise.resolve()): Shipments => ({
+    locate: async (planId) => {
+      const state = states[planId];
+      return state === undefined ? null : { graph, ...state };
+    },
+    ship: async (g, planId, emit) => {
+      await wait;
+      shipped.push(`${g}:${planId}`);
+      emit({ type: "step.started", stepId: STEP, seq: 1, tool: "open_pull_request", input: { planId } });
+      emit({ type: "pr.opened", planId, url: "https://github.com/sakibalig/api/pull/2", verification });
+    },
+  });
+
+  it("starts a shipment job whose stream ends with the pull request", async () => {
+    const { app } = setup({ shipments: shipments() });
+    const res = await app.request(`/plans/${ready}/ship`, post({}));
+    expect(res.status).toBe(202);
+    const { jobId } = (await res.json()) as { jobId: string };
+    const got = await stream(app, jobId);
+    expect(got.map((e) => e.type)).toEqual(["step.started", "pr.opened"]);
+    expect(shipped).toContain(`${graph}:${ready}`);
+  });
+
+  it.each([
+    ["missing", "01JQZ8PAN00000000000000009", 404],
+    ["unapproved", "01JQZ8PAN00000000000000002", 403],
+    ["shipped", "01JQZ8PAN00000000000000003", 409],
+  ])("refuses a %s plan up front", async (_, planId, status) => {
+    const { app } = setup({ shipments: shipments() });
+    expect((await app.request(`/plans/${planId}/ship`, post({}))).status).toBe(status);
+  });
+
+  it("answers busy while the same plan is shipping", async () => {
+    let release = () => {};
+    const { app } = setup({ shipments: shipments(new Promise<void>((r) => (release = r))) });
+    expect((await app.request(`/plans/${ready}/ship`, post({}))).status).toBe(202);
+    expect((await app.request(`/plans/${ready}/ship`, post({}))).status).toBe(409);
+    release();
   });
 });
 

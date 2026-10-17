@@ -1,4 +1,4 @@
-import type { PlanDraft, Tier } from "@noderunner/core";
+import type { PlanDraft, Tier, Verification } from "@noderunner/core";
 
 export type Describable = Omit<PlanDraft, "title" | "body">;
 
@@ -25,8 +25,29 @@ function code(text: string): string {
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
+const BODY_CHARS = 60_000;
+
+/** The verification section: pending until the regenerated lockfile has been re-ingested. */
+function checked(v: Verification | undefined): string[] {
+  if (v === undefined)
+    return [
+      "Pending: before this pull request opens, the regenerated lockfile is re-ingested and every targeted alert is re-checked.",
+    ];
+  return [
+    `Re-ingested the regenerated lockfile and re-tiered every alert: **${v.closed} of ${v.targeted}** targeted alerts closed.`,
+    ...(v.stillOpen.length > 0 ? ["", "Still open:", ...v.stillOpen.map((k) => `- ${code(k)}`)] : []),
+    "",
+    v.newFindings.length === 0
+      ? "No new alerts."
+      : `${plural(v.newFindings.length, "new alert", "new alerts")}, none reachable from production code: ${v.newFindings.map(code).join(", ")}`,
+  ];
+}
+
 /** The pull request title and Markdown body for a plan, following the LLD's template; pure. */
-export function describe(plan: Describable): { readonly title: string; readonly body: string } {
+export function describe(
+  plan: Describable,
+  verification?: Verification,
+): { readonly title: string; readonly body: string } {
   const owners = new Map<string, string[]>();
   const first = new Map<string, Closed>();
   for (const u of plan.upgrades)
@@ -93,7 +114,7 @@ export function describe(plan: Describable): { readonly title: string; readonly 
     "",
     "### Verification",
     "",
-    "Pending: before this pull request opens, the regenerated lockfile is re-ingested and every targeted alert is re-checked.",
+    ...checked(verification),
     "",
     ...(plan.uncovered.length > 0
       ? ["### Not covered", "", ...plan.uncovered.map((k) => `- ${code(k)}`), ""]
@@ -102,5 +123,5 @@ export function describe(plan: Describable): { readonly title: string; readonly 
       ? `Suggested reviewers, from CODEOWNERS and recent history: ${reviewers.map(code).join(", ")}`
       : "No reviewers found in CODEOWNERS or recent history.",
   ].join("\n");
-  return { title, body };
+  return { title, body: body.length > BODY_CHARS ? `${body.slice(0, BODY_CHARS)}\n\n…truncated` : body };
 }
