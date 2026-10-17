@@ -20,10 +20,10 @@ RETURN count(x) AS total,
   }),
 );
 
-/** The newest run on the repository. */
+/** The newest triage run on the repository; evaluation baselines and `ui` runs for decisions and shipping are not it. */
 export const lastRun = query(
   "summary.lastRun",
-  `MATCH (r:Run) RETURN r.id AS runId, r.agent AS agent, r.status AS status, r.started_at AS startedAt
+  `MATCH (r:Run {agent: "triage"}) RETURN r.id AS runId, r.agent AS agent, r.status AS status, r.started_at AS startedAt
 ORDER BY startedAt DESC, runId DESC LIMIT 1`,
   z.object({ runId: z.string(), agent: z.string(), status: z.string(), startedAt: z.number().int() }),
 );

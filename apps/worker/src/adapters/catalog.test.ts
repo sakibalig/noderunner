@@ -68,7 +68,7 @@ describe("GraphCatalog", () => {
     expect(summary).toEqual({
       funnel: { total: 3, production: 3, reachable: 2, open: 1 },
       counts: { files: 1, installs: 1, vulns: 2, findings: 3, people: 0 },
-      lastRun: { runId: "01JQZ8ABCDEFGHJKMNPQRSTVWY", agent: "ui", status: "done", startedAt: 9 },
+      lastRun: { runId: "01JQZ8ABCDEFGHJKMNPQRSTVWX", agent: "triage", status: "done", startedAt: 5 },
     });
   });
 
