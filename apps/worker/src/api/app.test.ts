@@ -463,7 +463,7 @@ describe("runs", () => {
       ).text(),
     );
 
-  it("starts a triage run and streams it live to run.finished, text deltas included", async () => {
+  it("starts a triage run and streams its stored events to a subscriber who joins after it finished", async () => {
     const app = await ready();
     const res = await begin(app);
     expect(res.status).toBe(202);
@@ -471,7 +471,53 @@ describe("runs", () => {
     expect((await runEvents(app, runId)).map((e) => e.type)).toEqual([
       "run.started",
       "step.started",
-      "message.delta",
+      "step.finished",
+      "run.finished",
+    ]);
+  });
+
+  it("streams text deltas to a subscriber connected while the model writes", async () => {
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const app = await ready({
+      run: async ({ runId, emit }) => {
+        emit({ type: "run.started", runId, agent: "triage", model: "openai/gpt-5" });
+        await gate;
+        emit({ type: "message.delta", text: "hello" });
+        emit({ type: "run.finished", runId, status: "done", unverified: false, report: "hello" });
+      },
+    });
+    const { runId } = (await (await begin(app)).json()) as { runId: string };
+    const streaming = runEvents(app, runId);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    release();
+    expect((await streaming).map((e) => e.type)).toEqual(["run.started", "message.delta", "run.finished"]);
+  });
+
+  it("keeps every step for a late subscriber however much text the model streamed", async () => {
+    const app = await ready({
+      run: async ({ runId, emit }) => {
+        emit({ type: "run.started", runId, agent: "triage", model: "openai/gpt-5" });
+        emit({ type: "step.started", stepId: STEP, seq: 1, tool: "list_alerts", input: {} });
+        emit({
+          type: "step.finished",
+          stepId: STEP,
+          ok: true,
+          summary: "",
+          evidence: { nodes: [], edges: [], cypher: [] },
+          ms: 1,
+        });
+        for (let i = 0; i < 2_000; i++) emit({ type: "message.delta", text: "x" });
+        emit({ type: "run.finished", runId, status: "done", unverified: false, report: "done" });
+      },
+    });
+    const { runId } = (await (await begin(app)).json()) as { runId: string };
+    await runEvents(app, runId);
+    expect((await runEvents(app, runId)).map((e) => e.type)).toEqual([
+      "run.started",
+      "step.started",
       "step.finished",
       "run.finished",
     ]);
@@ -481,7 +527,7 @@ describe("runs", () => {
     const app = await ready();
     const { runId } = (await (await begin(app)).json()) as { runId: string };
     await runEvents(app, runId);
-    expect((await runEvents(app, runId, "", "3")).map((e) => e.id)).toEqual([4, 5]);
+    expect((await runEvents(app, runId, "", "2")).map((e) => e.id)).toEqual([3, 4]);
   });
 
   it("replays a finished run from the archive without text deltas, and serves its view", async () => {

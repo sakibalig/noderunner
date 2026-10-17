@@ -103,7 +103,7 @@ export class Runs {
     }
     if (live.finishedAt !== null) return { stop: () => {}, done: true };
     const stop = live.ring.listen((framed) => {
-      if (framed.id > last) send(framed);
+      if (framed.id > last || framed.event.type === "message.delta") send(framed);
     });
     if (stop === null) throw new WorkerError("busy", "run.subscribers", "Too many listeners on this run");
     return { stop, done: false };
@@ -120,7 +120,11 @@ export class Runs {
     const signal = AbortSignal.any([this.#shutdown.signal, AbortSignal.timeout(this.#options.deadlineMs)]);
     const kept: RunEvent[] = [];
     const emit = (event: RunEvent) => {
-      if (event.type !== "message.delta") kept.push(event);
+      if (event.type === "message.delta") {
+        live.ring.pass(event);
+        return;
+      }
+      kept.push(event);
       live.ring.push(event);
     };
     log.info({ runId }, "job.run.started");

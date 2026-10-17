@@ -29,6 +29,7 @@ export function Canvas({ graph, highlight }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const cy = useRef<Core | null>(null);
   const drawn = useRef(0);
+  const focused = useRef("");
 
   useEffect(() => {
     let alive = true;
@@ -66,9 +67,23 @@ export function Canvas({ graph, highlight }: Props) {
       }
     });
     const count = instance.nodes().length;
-    if (count !== drawn.current) {
+    const grew = count !== drawn.current;
+    if (grew) {
       drawn.current = count;
       instance.layout(layout).run();
+    }
+    // Zoom to the selected step's path; a real repository's evidence is too large to read whole.
+    const focus = [...highlight.nodes].sort().join(",");
+    if (focus !== focused.current || (grew && focus !== "")) {
+      focused.current = focus;
+      // Fit to the lit paths (edges and their ends); a step with no edges, such as list_alerts, fits its nodes.
+      const paths = instance.edges(".on");
+      const lit = paths.nonempty() ? paths.union(paths.connectedNodes()) : instance.nodes(".on");
+      instance.stop();
+      instance.animate(
+        { fit: { eles: lit.nonempty() ? lit : instance.elements(), padding: 50 } },
+        { duration: 350 },
+      );
     }
   });
 
