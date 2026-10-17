@@ -66,12 +66,20 @@ export function request(model: string, req: Request): Omit<ResponseCreateParamsS
   };
 }
 
+// The SDK's streaming helper adds these client-side conveniences to output items; the API rejects them as input.
+const helpers = new Set(["parsed_arguments", "parsed"]);
+
+/** An output item as OpenAI sent it, without the SDK's added fields, so it can be echoed back as input. */
+function wire(item: unknown): Json {
+  return Json.parse(JSON.parse(JSON.stringify(item, (key, value) => (helpers.has(key) ? undefined : value))));
+}
+
 /** The core Turn for a finished response; every item the loop must send back keeps its raw form. */
 export function parse(response: Response): Turn {
   const content: Block[] = [];
   let refused = false;
   for (const item of response.output) {
-    const raw = Json.parse(JSON.parse(JSON.stringify(item)));
+    const raw = wire(item);
     if (item.type === "reasoning") {
       content.push({ type: "opaque", carry: { provider: "openai", raw } });
     } else if (item.type === "function_call") {
