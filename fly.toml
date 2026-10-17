@@ -1,0 +1,30 @@
+# The worker on Fly.io: `fly launch --no-deploy --copy-config`, set the secrets, then `fly deploy`.
+app = "noderunner-worker"
+primary_region = "bom"
+
+[build]
+  dockerfile = "docker/worker.Dockerfile"
+
+[env]
+  PORT = "8787"
+  LLM_PROVIDER = "openai"
+  CACHE_DIR = "/tmp/noderunner"
+
+[http_service]
+  internal_port = 8787
+  force_https = true
+  # One always-on machine: runs and SSE streams live in memory, so the worker must not scale to zero mid-run.
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    method = "GET"
+    path = "/healthz"
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "20s"
+
+[[vm]]
+  memory = "2gb"
+  cpus = 1
