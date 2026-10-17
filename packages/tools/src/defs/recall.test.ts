@@ -123,12 +123,13 @@ describe("record_decision", () => {
 
 describe("recall_decisions staleness", () => {
   it("holds a fresh waiver in force", async () => {
-    const { ctx } = await seeded(db, made);
+    const { g, ctx } = await seeded(db, made);
     const box = toolbox(db, manual(START));
     await decide(box, ctx, { key: MINIMIST, kind: "waive", expiresInDays: 30 });
     const recalled = await recall(box, ctx);
     expect(recalled.inForce.map((d) => d.key)).toEqual([MINIMIST]);
     expect(recalled.stale).toEqual([]);
+    expect((await g.query(finding, { key: MINIMIST }, never))[0]?.status).toBe("waived");
   });
 
   it("flags an expired waiver and writes the reason", async () => {
@@ -140,6 +141,7 @@ describe("recall_decisions staleness", () => {
     const recalled = await recall(box, ctx);
     expect(recalled.stale.map((d) => [d.key, d.staleReason])).toEqual([[MINIMIST, "expired"]]);
     expect((await g.query(decisionRow, { id: made1.decisionId }, never))[0]?.stale).toBe("expired");
+    expect((await g.query(finding, { key: MINIMIST }, never))[0]?.status).toBe("open");
   });
 
   it("flags a waiver whose finding became import-reachable", async () => {

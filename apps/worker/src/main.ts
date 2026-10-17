@@ -8,6 +8,7 @@ import { pino } from "pino";
 import { GraphArchive } from "./adapters/archive.ts";
 import { GraphCatalog } from "./adapters/catalog.ts";
 import { systemClock, ulidIds } from "./adapters/clock.ts";
+import { GraphFindings } from "./adapters/findings.ts";
 import { OpenAIModel } from "./adapters/model/openai.ts";
 import { GraphPlans } from "./adapters/plans.ts";
 import { reachable } from "./adapters/probe.ts";
@@ -97,6 +98,7 @@ const app = createApp({
   archive,
   plans: new GraphPlans(db, systemClock),
   catalog: new GraphCatalog(db),
+  findings: new GraphFindings({ db, clock: systemClock, ids: ulidIds, toolbox }),
   limiter: new Limiter(RATE, systemClock),
   probe: { falkordb: reachable(env.FALKORDB_URL), model: key.length > 0 },
   log,

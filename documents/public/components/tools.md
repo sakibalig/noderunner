@@ -158,7 +158,8 @@ ORDER BY key, createdAt, id LIMIT 500
 
 Data `{ inForce, stale }`, split by whether `staleness` returned a reason. `decisions.stale` then writes
 `stale_reason` on every returned decision (null when no longer stale) with one `UNWIND`. The rules apply to every
-kind of decision, not only the LLD's `waive`.
+kind of decision, not only the LLD's `waive`. A stale waive also sets its finding from `waived` back to `open`, so
+`plan_upgrades` covers it again instead of silently skipping it.
 
 #### `list_alerts` — derive, writes `FOUND`
 

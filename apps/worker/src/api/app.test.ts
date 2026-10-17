@@ -1,5 +1,6 @@
 import {
   Fault,
+  FindingDetail,
   findingKey,
   graphName,
   type IngestReport,
@@ -11,6 +12,7 @@ import {
 } from "@noderunner/core";
 import { describe, expect, it } from "vitest";
 import type { Catalog, Ingester } from "../jobs/catalog.ts";
+import type { Findings } from "../jobs/findings.ts";
 import { Limiter } from "../jobs/limit.ts";
 import type { Plans } from "../jobs/plans.ts";
 import { type DEFAULTS, Jobs } from "../jobs/queue.ts";
@@ -40,9 +42,11 @@ function report(repo: RepoRef): IngestReport {
 }
 
 const noPlans: Plans = { forRun: async () => null, approve: async () => false };
+const noFindings: Findings = { detail: async () => null, decide: async () => null };
 
 type Setup = {
   plans?: Plans;
+  findings?: Findings;
   run?: Runner;
   ingest?: Ingester;
   falkordb?: boolean;
@@ -135,6 +139,7 @@ function setup(options: Setup = {}) {
     runs,
     archive,
     plans: options.plans ?? noPlans,
+    findings: options.findings ?? noFindings,
     catalog,
     limiter: new Limiter({ limit: 3, windowMs: 3_600_000, clients: 100 }, clock),
     probe: { falkordb: async () => options.falkordb ?? true, model: true },
@@ -630,5 +635,78 @@ describe("plans", () => {
     expect((await app.request(`/plans/${draft.planId}/approve`, post({ by: "not a handle" }))).status).toBe(
       400,
     );
+  });
+});
+
+describe("findings and decisions", () => {
+  const key = findingKey("GHSA-1", "qs");
+  const detail = FindingDetail.parse({
+    finding: {
+      key,
+      vulnId: "GHSA-1",
+      package: "qs",
+      installs: ["node_modules/qs"],
+      severity: "high" as const,
+      tier: "import-reachable" as const,
+      status: "open" as const,
+    },
+    vuln: { id: "GHSA-1", aliases: [], severity: "high" as const, summary: "<b>x</b>", modified: 1 },
+    path: null,
+    decisions: [],
+  });
+  const decided: { repo: string; by: string; reason: string }[] = [];
+  const findings: Findings = {
+    detail: async (repo, k) => (repo.owner === "acme" && k === key ? detail : null),
+    decide: async (repo, input) => {
+      if (input.key !== key) return null;
+      decided.push({ repo: `${repo.owner}/${repo.name}`, by: input.by, reason: input.reason });
+      return { decisionId: "01JQZ8DEC0000000000000000A" };
+    },
+  };
+
+  it("answers a finding's detail with the key URL-encoded", async () => {
+    const { app } = setup({ findings });
+    const res = await app.request(`/repos/Acme/api/findings/${encodeURIComponent(key)}`, { headers: auth });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual(detail);
+  });
+
+  it("answers missing for an unknown finding", async () => {
+    const { app } = setup({ findings });
+    const res = await app.request(`/repos/acme/api/findings/${encodeURIComponent("GHSA-9|qs")}`, {
+      headers: auth,
+    });
+    expect(res.status).toBe(404);
+    expect(((await res.json()) as { error: { code: string } }).error.code).toBe("missing");
+  });
+
+  it("records a decision against the lowercased repository", async () => {
+    const { app } = setup({ findings });
+    const res = await app.request(
+      "/decisions",
+      post({ repoId: "Acme/API", key, kind: "waive", reason: "not exposed", by: "alice" }),
+    );
+    expect(res.status).toBe(201);
+    expect(await res.json()).toEqual({ decisionId: "01JQZ8DEC0000000000000000A" });
+    expect(decided.at(-1)).toEqual({ repo: "acme/api", by: "alice", reason: "not exposed" });
+  });
+
+  it.each([
+    ["an empty reason", { kind: "waive", reason: "" }],
+    ["an unknown kind", { kind: "ignore", reason: "x" }],
+    ["a handle with an @", { kind: "waive", reason: "x", by: "@alice" }],
+  ])("refuses %s", async (_, change) => {
+    const { app } = setup({ findings });
+    const res = await app.request("/decisions", post({ repoId: "acme/api", key, by: "alice", ...change }));
+    expect(res.status).toBe(400);
+  });
+
+  it("answers missing when the finding does not exist", async () => {
+    const { app } = setup({ findings });
+    const res = await app.request(
+      "/decisions",
+      post({ repoId: "acme/api", key: "GHSA-9|qs", kind: "waive", reason: "x", by: "alice" }),
+    );
+    expect(res.status).toBe(404);
   });
 });
