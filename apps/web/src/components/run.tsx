@@ -1,7 +1,7 @@
 "use client";
 
 import { RunEvent } from "@noderunner/core";
-import { useCallback, useEffect, useMemo, useReducer } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import { initial, reducer } from "../state/reducer.ts";
 import { Canvas } from "./canvas.tsx";
 import { Draft } from "./draft.tsx";
@@ -44,6 +44,15 @@ export function Run({ runId, replay }: { readonly runId: string; readonly replay
     (stepId: string) => dispatch(selected === stepId ? { type: "clear" } : { type: "select", stepId }),
     [selected],
   );
+  const graph = useRef<HTMLElement>(null);
+  /** A citation is read far below the graph, so bring the graph into view to show the path it lights. */
+  const cite = useCallback(
+    (stepId: string) => {
+      select(stepId);
+      if (selected !== stepId) graph.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    },
+    [select, selected],
+  );
 
   const phase = state.phase;
   const status =
@@ -67,7 +76,7 @@ export function Run({ runId, replay }: { readonly runId: string; readonly replay
         <span> · {steps.length} tool calls</span>
         {state.graph.nodes.length > 0 ? <span> · {state.graph.nodes.length} graph nodes touched</span> : null}
       </p>
-      <section className="panel graph">
+      <section className="panel graph" ref={graph}>
         <h2>
           Evidence graph
           {selected ? (
@@ -85,7 +94,7 @@ export function Run({ runId, replay }: { readonly runId: string; readonly replay
         </section>
         <section className="panel">
           <h2>Report</h2>
-          <Report report={state.report} numberOf={numberOf} selected={selected} onCite={select} />
+          <Report report={state.report} numberOf={numberOf} selected={selected} onCite={cite} />
         </section>
       </div>
       {phase.kind === "finished" && phase.status !== "failed" ? <Draft runId={runId} /> : null}

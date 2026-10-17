@@ -120,13 +120,13 @@ Exit: the full demo script runs on the hosted build; feature freeze at midnight.
 | T25 | Deploy worker, web, and FalkorDB Cloud; pre-load demo repositories and runs | Sakib | 2 | T17 | Hosted smoke check passes | done: hosting is local only (D14); the runbook is a local-run guide |
 | T26 | Replay mode and compare page | Sakib | 1.5 | T20 | Replay plays a finished run with no model call | cut: finished runs already replay exactly from the graph |
 | T27 | Fixer agent and "Hand to fixer" button (should) | Shaukat | 2 | T21 | A fresh session opens the pull request from graph state alone | cut: the UI ship route opens the pull request through the same tool |
-| T28 | Run the full demo script on the hosted build; bug list | Both | 1 | all | Day 3 exit met | todo |
+| T28 | Run the full demo script on the hosted build; bug list | Both | 1 | all | Day 3 exit met | in progress: run-through on the local build; found the last-run link pointing at eval runs and citations zooming the graph off screen |
 
 ### Sun Oct 18 — Day 4, ship by 6:00 PM IST
 
 | ID | Task | Owner | Hours | Needs | Done when | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| T29 | Bug fixes from T28 only; no new features | Both | 3 | T28 | The demo script runs three times in a row | todo |
+| T29 | Bug fixes from T28 only; no new features | Both | 3 | T28 | The demo script runs three times in a row | in progress (fix/t29-demo): last run is the newest triage run; a citation scrolls the graph into view; demo script updated |
 | T30 | README: problem, schema diagram, setup, FalkorDB features used, eval table, prior art | Shaukat | 2 | T24 | A new reader can run it from the README | done (PR merged), with `pnpm triage` as its runnable quickstart; real results on `nestjs/nest` stand in for the eval table until T24 |
 | T31 | Record and edit the demo video, about 3 minutes | Sakib | 3 | T29 | Uploaded; the link works when logged out | todo |
 | T32 | Blog post for the side prize | Sakib (taken over) | 2.5 | T24 | Published and linked from the README | drafted: `documents/public/blog.md`; publish it, then link it from the README |
