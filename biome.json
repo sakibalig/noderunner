@@ -57,6 +57,16 @@
           }
         }
       }
+    },
+    {
+      "includes": ["apps/web/src/components/report.tsx"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noArrayIndexKey": "off"
+          }
+        }
+      }
     }
   ]
 }

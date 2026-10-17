@@ -278,3 +278,131 @@ tr:last-child td {
   text-align: center;
   color: var(--muted);
 }
+
+main.wide {
+  max-width: 1280px;
+}
+.crumb {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0 0 6px;
+}
+.launch {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 16px;
+}
+.launch .error {
+  margin: 0;
+}
+.status {
+  font-weight: 600;
+}
+.status.running {
+  color: var(--installed);
+}
+.status.done {
+  color: var(--ok);
+}
+.status.failed,
+.status.capped {
+  color: var(--critical);
+}
+.panes {
+  display: grid;
+  grid-template-columns: minmax(300px, 2fr) 3fr;
+  gap: 16px;
+  align-items: start;
+}
+.panes h2 {
+  margin-top: 0;
+}
+ol.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+ol.timeline li button {
+  all: unset;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  gap: 2px 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+ol.timeline li.on button {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+ol.timeline li.failed .tool {
+  color: var(--critical);
+}
+ol.timeline li.running {
+  opacity: 0.7;
+}
+ol.timeline .seq {
+  font-weight: 700;
+  color: var(--muted);
+}
+ol.timeline .ms {
+  color: var(--muted);
+  font-size: 12px;
+}
+ol.timeline .summary {
+  grid-column: 2 / 4;
+  color: var(--muted);
+  font-size: 13px;
+}
+details.query {
+  margin: 4px 0 0 36px;
+}
+details.query pre {
+  white-space: pre-wrap;
+  font: 12px / 1.5 var(--mono);
+  background: var(--bg);
+  padding: 8px;
+  border-radius: 6px;
+}
+.report h3 {
+  font-size: 15px;
+  margin: 18px 0 8px;
+}
+.report h3:first-child {
+  margin-top: 0;
+}
+.report table {
+  margin: 8px 0;
+}
+.report code {
+  font: 12.5px var(--mono);
+  background: var(--bg);
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+button.cite {
+  padding: 0 6px;
+  margin: 0 1px;
+  font-size: 11px;
+  line-height: 17px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  vertical-align: 1px;
+}
+button.cite.on {
+  background: var(--accent);
+  color: #fff;
+}
+@media (max-width: 900px) {
+  .panes {
+    grid-template-columns: 1fr;
+  }
+}

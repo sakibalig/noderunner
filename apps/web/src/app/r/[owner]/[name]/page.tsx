@@ -2,6 +2,7 @@ import { Tier } from "@noderunner/core";
 import { notFound } from "next/navigation";
 import { Alerts } from "../../../../components/alerts.tsx";
 import { Funnel } from "../../../../components/funnel.tsx";
+import { Launch } from "../../../../components/launch.tsx";
 import { worker } from "../../../../server/worker.ts";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +29,12 @@ export default async function Repository({ params, searchParams }: Props) {
         {summary.counts.files} files · {summary.counts.installs} installs · {summary.counts.vulns}{" "}
         vulnerabilities
       </p>
+      <Launch repoId={`${owner}/${name}`} />
+      {summary.lastRun ? (
+        <p className="sub">
+          Last run: <a href={`${base}/runs/${summary.lastRun.runId}`}>{summary.lastRun.status}</a>
+        </p>
+      ) : null}
       <section className="panel">
         <Funnel funnel={summary.funnel} base={base} />
       </section>
