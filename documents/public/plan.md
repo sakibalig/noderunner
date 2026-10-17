@@ -89,7 +89,7 @@ Exit: one real repository in the graph, golden queries G1 to G5 correct.
 | T08 | Ingest stage 5: CODEOWNERS and git history | Sakib | 2 | T03 | G5 correct on demo repository 1 | done (PR merged) |
 | T09 | Worker: Hono, `/healthz`, `POST /repos` with job queue and job SSE, `GET /repos`, `summary` | Sakib | 3 | T02 | Ingest triggered over HTTP with live progress | done (PR merged) |
 | T10 | Web shell: home, repository page, funnel and alert table on fixture data | Sakib | 3 | T02 | Pages render from fixtures | done (PR merged) |
-| T11 | Golden queries G1 to G5 checked by hand | Shaukat | 1 | T05–T07 | Day 1 exit met | todo |
+| T11 | Golden queries G1 to G5 checked by hand | Sakib (taken over) | 1 | T05–T07 | Day 1 exit met | done: on `nestjs/nest`, G1 and G2 equal the lockfile and `npm audit`; G3 to G5 agree apart from two recorded gaps (`createRequire` loads, the 200-commit history window). See graph.md |
 
 ### Fri Oct 16 — Day 2, the agent works from the command line
 
@@ -103,7 +103,7 @@ Exit: a CLI run on demo repository 1 gives a correct plan with citations and a s
 | T15 | Run endpoints: `POST /runs`, run SSE with replay, `GET /runs/:id`, `subgraph`, `approve`, `ship`, `decisions` | Sakib | 2.5 | T09 | curl can start a run and stream it | done (PR merged); plan approve and ship move to T23 with the executor |
 | T16 | Agent loop, triage system prompt, step cap, report validator | Shaukat (taken over from Sakib, agreed) | 5 | T02, then T12 | Day 2 exit met | done (PR merged; live OpenAI run pending a key) |
 | T17 | Run view: reducer, step timeline, report panel with citations, live SSE | Sakib | 3.5 | T15 | A live run renders end to end | done (PR merged) |
-| T18 | MCP server, stdio and HTTP, read-only by default | Sakib | 1.5 | T13 | An MCP client answers "which alerts are reachable" through it | todo |
+| T18 | MCP server, stdio and HTTP, read-only by default | Sakib | 1.5 | T13 | An MCP client answers "which alerts are reachable" through it | cut: not needed for the demo; the tools are already typed for it |
 
 ### Sat Oct 17 — Day 3, visible, acting, deployed
 
@@ -117,9 +117,9 @@ Exit: the full demo script runs on the hosted build; feature freeze at midnight.
 | T22 | Verification re-ingest and the pull request description | Shaukat | 2 | T21 | The description shows correct closed counts | done: the description carries the re-ingest's closed, still-open, and new counts (T21) |
 | T23 | Finding drawer, waive with reason, approve and ship buttons | Sakib | 2.5 | T17 | Waive in the UI; a new run respects it | done: drawer and waive; approve shipped in T22, ship moves to T22b. A stale waiver now reopens its finding |
 | T24 | Eval: labels for 3 repositories, baseline tools, runner, results table | Both | 3 | T16 | `eval/results.md` generated | done (feat/t24-eval), cut to one repository: on `nestjs/nest`, against 56 labels with 2 corrections the tool missed, the graph agent scores 100% precision and 83% recall in 3 of 3 runs; the files-only baseline 100% precision (2 of 3 runs) and 25% recall (0–25%), capped every run. Quote only from `eval/results.md` |
-| T25 | Deploy worker, web, and FalkorDB Cloud; pre-load demo repositories and runs | Sakib | 2 | T17 | Hosted smoke check passes | in review (chore/t25-deploy): image, fly.toml, and runbook ready; hosting needs the accounts |
-| T26 | Replay mode and compare page | Sakib | 1.5 | T20 | Replay plays a finished run with no model call | todo |
-| T27 | Fixer agent and "Hand to fixer" button (should) | Shaukat | 2 | T21 | A fresh session opens the pull request from graph state alone | todo |
+| T25 | Deploy worker, web, and FalkorDB Cloud; pre-load demo repositories and runs | Sakib | 2 | T17 | Hosted smoke check passes | done: hosting is local only (D14); the runbook is a local-run guide |
+| T26 | Replay mode and compare page | Sakib | 1.5 | T20 | Replay plays a finished run with no model call | cut: finished runs already replay exactly from the graph |
+| T27 | Fixer agent and "Hand to fixer" button (should) | Shaukat | 2 | T21 | A fresh session opens the pull request from graph state alone | cut: the UI ship route opens the pull request through the same tool |
 | T28 | Run the full demo script on the hosted build; bug list | Both | 1 | all | Day 3 exit met | todo |
 
 ### Sun Oct 18 — Day 4, ship by 6:00 PM IST
@@ -183,7 +183,7 @@ If a day's exit condition is missed at the evening call, cut the next morning in
 | D11 | Name the project and the package scope `noderunner` | Both | **Resolved** on Oct 15 |
 | D12 | Engineering standard: the production standard, adapted and lighter for the hackathon | Sakib | **Resolved** on Oct 15 |
 | D13 | Fill one of the two empty team seats with someone for video or design | Both | **Open** |
-| D14 | Where the sandbox runs on the hosted build. Fly.io and Railway give the worker no Docker daemon. Options: a second machine with Docker; npm as an unprivileged child process in a temporary directory holding only the two package files; or regenerate locally and ship from a laptop for the demo | Both | **Decided by Sakib, Shaukat to confirm**: hosting is local only, so the child process (`Npm` in `packages/executor`) is built. `--ignore-scripts` and the absent repository code carry the safety. The P0 rule in AGENTS.md still says "container" and needs both owners to reword it |
+| D14 | Where the sandbox runs on the hosted build. Fly.io and Railway give the worker no Docker daemon. Options: a second machine with Docker; npm as an unprivileged child process in a temporary directory holding only the two package files; or regenerate locally and ship from a laptop for the demo | Both | **Decided by Sakib (2026-10-18), Shaukat unavailable**: hosting is local only, so the sandbox is the npm child process (`Npm` in `packages/executor`) in a temporary folder holding only package manifests and the lockfile. `--ignore-scripts` and the absent repository code carry the safety. The P0 rule in AGENTS.md is reworded to match |
 | D15 | Whether any visitor to the hosted build may approve and ship. The token is limited to the demo forks | Both | **Open** — recommended: gate approve and ship behind a demo passphrase |
 | D16 | The LLM provider | Both | **Superseded by D17** — was, on Oct 15: OpenAI through the `openai` SDK and the Responses API, `gpt-5` by default and `gpt-5-mini` as the fallback; the `Model` port keeps the agent loop provider-neutral |
 | D17 | Vendor-neutral LLM providers | Sakib | **Resolved** on Oct 15: one provider per deployment via `LLM_PROVIDER`; the port supports OpenAI, Anthropic, and Gemini; only the OpenAI adapter is built before the deadline; one hand-written adapter per provider ([llm.md](components/llm.md)) |

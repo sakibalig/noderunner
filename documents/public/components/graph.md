@@ -161,6 +161,19 @@ minimum length of one and so cannot express the zero-hop case where a file loads
 and the tier query in [tools](tools.md) are written in the projection form shown; if S1 shows that FalkorDB accepts
 `shortestPath` inside `MATCH`, or rejects both forms, both constants change together (D1).
 
+### Checked on `nestjs/nest` @ `c215fd9` (T11, 2026-10-18)
+
+| Query | Graph | Outside source | Result |
+| --- | --- | --- | --- |
+| G1 counts | 1,638 installs, 1,460 dev, 97 direct | `package-lock.json` non-root, non-link entries; root `package.json` | Equal |
+| G2 vulns | 56 advisories | `npm audit --package-lock-only --json` on the same lockfile and workspace manifests | The same 56 ids, none on one side only |
+| G3 chain | `ws`, `socket.io-parser`, `brace-expansion` chains | The source files and lockfile entries, read by hand (`eval/labels/nestjs/nest.json`) | Equal |
+| G4 loaders | `socket.io`: `io-adapter.ts`; `@fastify/static`: `fastify-adapter.ts` | A search of the non-test source | Equal. `@grpc/grpc-js` has no loader, but `packages/microservices` loads it with `createRequire(import.meta.url)('@grpc/grpc-js')`, which the import parser does not resolve |
+| G5 owners | No owners; `io-adapter.ts` changed by `@kamilmysliwiec` | The repository has no CODEOWNERS; GitHub's history of the file | Owners equal. Authors differ by design: people come from the last 200 commits of the repository, and the file's other four authors are older |
+
+The two differences are recorded as known gaps: `createRequire` loads (the eval's two label corrections) and the
+history window.
+
 ## Failures
 
 `GraphError extends Fault` with these codes:

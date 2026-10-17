@@ -61,7 +61,8 @@ These are blockers. A change that violates any of them does not merge regardless
 - **Parameterised, bounded Cypher only.** No value is ever concatenated into a query string, every query is a
   named constant under `packages/graph/src/cypher`, and every variable-length pattern carries an upper bound.
 - **No execution of scanned code.** Ingestion parses text only. The one command ever run against repository
-  content is lockfile regeneration with `--ignore-scripts` inside the throwaway sandbox container.
+  content is lockfile regeneration with `--ignore-scripts` inside the throwaway sandbox: a fresh temporary folder
+  holding only package manifests and the lockfile, never the repository's code (D14).
 - **No ad-hoc flags steering behaviour.** State that drives a decision is a discriminated union or a string-literal
   union with explicit transitions, never a loose boolean threaded through calls.
 - **Single-word names.** Directories, files, and packages each use one precise word; a multi-word concept is
