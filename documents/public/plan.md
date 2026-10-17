@@ -129,7 +129,7 @@ Exit: the full demo script runs on the hosted build; feature freeze at midnight.
 | T29 | Bug fixes from T28 only; no new features | Both | 3 | T28 | The demo script runs three times in a row | todo |
 | T30 | README: problem, schema diagram, setup, FalkorDB features used, eval table, prior art | Shaukat | 2 | T24 | A new reader can run it from the README | done (PR merged), with `pnpm triage` as its runnable quickstart; real results on `nestjs/nest` stand in for the eval table until T24 |
 | T31 | Record and edit the demo video, about 3 minutes | Sakib | 3 | T29 | Uploaded; the link works when logged out | todo |
-| T32 | Blog post for the side prize | Shaukat | 2.5 | T24 | Published and linked from the README | todo |
+| T32 | Blog post for the side prize | Sakib (taken over) | 2.5 | T24 | Published and linked from the README | drafted: `documents/public/blog.md`; publish it, then link it from the README |
 | T33 | Submission form, track selection, final checks | Both | 0.5 | T30–T32 | Submitted by 6:00 PM IST, confirmation saved | todo |
 
 ## 5. Load and critical path

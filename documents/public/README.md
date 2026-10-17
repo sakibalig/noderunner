@@ -12,7 +12,9 @@ sequence lives in the [delivery plan](plan.md).
 | [standards/review.md](standards/review.md) | The review a change is judged against before it merges |
 | [plan.md](plan.md) | Tasks, owners, cut order, decisions, risks, and the reconciliation record |
 | [demo/script.md](demo/script.md) | The three-minute video: shots, timings, narration, fallback |
-| [runbook/deploy.md](runbook/deploy.md) | Running the demo locally: configuration, start, pre-load, evaluation, failures |
+| [runbook/deploy.md](runbook/deploy.md) | The hosted demo: FalkorDB Cloud, Fly.io, Vercel, pre-load, smoke check, failures |
+| [blog.md](blog.md) | The blog post for the side prize: the problem, the graph, the agent, the evaluation, FalkorDB lessons |
+
 | [tracks/sakib.md](tracks/sakib.md) | Sakib's stage-by-stage working plan, hand-offs with Shaukat, and cut order |
 
 The root [AGENTS.md](../../AGENTS.md) is the entry point every contributor and coding agent reads first. New pages
