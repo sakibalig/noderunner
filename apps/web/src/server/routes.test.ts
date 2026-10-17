@@ -8,6 +8,7 @@ describe("forwardable", () => {
     ["GET", "/jobs/01JQZ8/events"],
     ["POST", "/plans/01JQZ8/ship"],
     ["GET", "/healthz"],
+    ["GET", "/runs/01JQZ8/plan"],
   ])("forwards %s %s", (method, path) => {
     expect(forwardable(method, path)).toBe(true);
   });

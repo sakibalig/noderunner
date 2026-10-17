@@ -4,6 +4,7 @@ import { RunEvent } from "@noderunner/core";
 import { useCallback, useEffect, useMemo, useReducer } from "react";
 import { initial, reducer } from "../state/reducer.ts";
 import { Canvas } from "./canvas.tsx";
+import { Draft } from "./draft.tsx";
 import { Report } from "./report.tsx";
 import { Timeline } from "./timeline.tsx";
 
@@ -87,6 +88,7 @@ export function Run({ runId, replay }: { readonly runId: string; readonly replay
           <Report report={state.report} numberOf={numberOf} selected={selected} onCite={select} />
         </section>
       </div>
+      {phase.kind === "finished" && phase.status !== "failed" ? <Draft runId={runId} /> : null}
     </div>
   );
 }

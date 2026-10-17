@@ -6,5 +6,8 @@
   "description": "Lockfile regeneration, verification, and the pull request",
   "exports": {
     ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@noderunner/core": "workspace:*"
   }
 }

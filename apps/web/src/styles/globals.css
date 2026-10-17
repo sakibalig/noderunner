@@ -444,3 +444,32 @@ button.cite.on {
   font-size: 12px;
   color: var(--muted);
 }
+
+.panel.draft {
+  margin-top: 16px;
+}
+.panel.draft h2 {
+  margin-top: 0;
+}
+.panel.draft .title {
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+form.approve {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 16px;
+}
+form.approve input {
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+  width: 240px;
+}
+.approved {
+  color: var(--ok);
+  font-weight: 600;
+  margin-top: 16px;
+}
