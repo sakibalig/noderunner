@@ -10,6 +10,7 @@
   "dependencies": {
     "@hono/node-server": "2.1.5",
     "@noderunner/core": "workspace:*",
+    "@noderunner/executor": "workspace:*",
     "@noderunner/graph": "workspace:*",
     "@noderunner/ingest": "workspace:*",
     "@noderunner/planner": "workspace:*",

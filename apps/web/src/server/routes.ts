@@ -9,6 +9,7 @@ const allowed: readonly (readonly [string, RegExp])[] = [
   ["POST", /^\/runs$/],
   ["GET", /^\/runs\/[^/]+$/],
   ["GET", /^\/runs\/[^/]+\/events$/],
+  ["GET", /^\/runs\/[^/]+\/plan$/],
   ["POST", /^\/plans\/[^/]+\/approve$/],
   ["POST", /^\/plans\/[^/]+\/ship$/],
   ["POST", /^\/decisions$/],

@@ -11,6 +11,7 @@ import {
 import { describe, expect, it } from "vitest";
 import type { Catalog, Ingester } from "../jobs/catalog.ts";
 import { Limiter } from "../jobs/limit.ts";
+import type { Plans } from "../jobs/plans.ts";
 import { type DEFAULTS, Jobs } from "../jobs/queue.ts";
 import { type Archive, type Runner, Runs } from "../jobs/runs.ts";
 import type { Log } from "../log.ts";
@@ -37,7 +38,10 @@ function report(repo: RepoRef): IngestReport {
   };
 }
 
+const noPlans: Plans = { forRun: async () => null, approve: async () => false };
+
 type Setup = {
+  plans?: Plans;
   run?: Runner;
   ingest?: Ingester;
   falkordb?: boolean;
@@ -129,6 +133,7 @@ function setup(options: Setup = {}) {
     jobs: new Jobs({ ingest, clock, ids, log }, options.jobs),
     runs,
     archive,
+    plans: options.plans ?? noPlans,
     catalog,
     limiter: new Limiter({ limit: 3, windowMs: 3_600_000, clients: 100 }, clock),
     probe: { falkordb: async () => options.falkordb ?? true, model: true },
@@ -580,5 +585,49 @@ describe("runs", () => {
       404,
     );
     expect((await app.request("/runs/bad/events", { headers: auth })).status).toBe(400);
+  });
+});
+
+describe("plans", () => {
+  const draft = {
+    planId: "01JQZ8PAN00000000000000000",
+    runId: "01JQZ8RN000000000000000000",
+    repoId: "acme/api",
+    approved: false,
+    totalCost: 1,
+    uncovered: [],
+    upgrades: [],
+    title: "Noderunner: close 0 reachable vulnerabilities in acme/api",
+    body: "## body",
+  };
+  const approved: string[] = [];
+  const plans: Plans = {
+    forRun: async (runId) => (runId === draft.runId ? (draft as never) : null),
+    approve: async (planId, by) => {
+      if (planId !== draft.planId) return false;
+      approved.push(by);
+      return true;
+    },
+  };
+
+  it("serves a run's plan as a pull request draft, and missing for a run without one", async () => {
+    const { app } = setup({ plans });
+    const res = await app.request(`/runs/${draft.runId}/plan`, { headers: auth });
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { title: string }).title).toBe(draft.title);
+    expect((await app.request("/runs/01JQZ8XXXXXXXXXXXXXXXXXXXX/plan", { headers: auth })).status).toBe(404);
+  });
+
+  it("approves a plan by handle, and refuses an unknown plan or a bad handle", async () => {
+    const { app } = setup({ plans });
+    const res = await app.request(`/plans/${draft.planId}/approve`, post({ by: "sakibalig" }));
+    expect([res.status, await res.json()]).toEqual([200, { approved: true }]);
+    expect(approved).toEqual(["sakibalig"]);
+    expect((await app.request("/plans/01JQZ8XXXXXXXXXXXXXXXXXXXX/approve", post({ by: "x" }))).status).toBe(
+      404,
+    );
+    expect((await app.request(`/plans/${draft.planId}/approve`, post({ by: "not a handle" }))).status).toBe(
+      400,
+    );
   });
 });

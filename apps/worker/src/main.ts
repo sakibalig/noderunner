@@ -9,6 +9,7 @@ import { GraphArchive } from "./adapters/archive.ts";
 import { GraphCatalog } from "./adapters/catalog.ts";
 import { systemClock, ulidIds } from "./adapters/clock.ts";
 import { OpenAIModel } from "./adapters/model/openai.ts";
+import { GraphPlans } from "./adapters/plans.ts";
 import { reachable } from "./adapters/probe.ts";
 import { runAgent } from "./agent/loop.ts";
 import { createApp } from "./api/app.ts";
@@ -94,6 +95,7 @@ const app = createApp({
   jobs,
   runs,
   archive,
+  plans: new GraphPlans(db, systemClock),
   catalog: new GraphCatalog(db),
   limiter: new Limiter(RATE, systemClock),
   probe: { falkordb: reachable(env.FALKORDB_URL), model: key.length > 0 },

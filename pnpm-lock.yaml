@@ -96,6 +96,9 @@ importers:
       '@noderunner/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@noderunner/executor':
+        specifier: workspace:*
+        version: link:../../packages/executor
       '@noderunner/graph':
         specifier: workspace:*
         version: link:../../packages/graph
@@ -146,7 +149,11 @@ importers:
         specifier: 7.8.0
         version: 7.8.0
 
-  packages/executor: {}
+  packages/executor:
+    dependencies:
+      '@noderunner/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/graph:
     dependencies:

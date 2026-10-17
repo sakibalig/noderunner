@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Decision, Finding, FindingStatus, Severity, Tier, Upgrade } from "./domain.ts";
+import { Decision, Finding, FindingStatus, SemverJump, Severity, Tier, Upgrade } from "./domain.ts";
 import { Agent } from "./events.ts";
 import { EvEdge, Evidence, EvNode } from "./evidence.ts";
 import { FindingKey, JobId, PlanId, RunId, Sha, StepId, segment } from "./ids.ts";
@@ -179,3 +179,37 @@ export type DecisionCreate = z.infer<typeof DecisionCreate>;
 /** GET /healthz. */
 export const Health = z.object({ ok: z.boolean(), falkordb: z.boolean(), model: z.boolean() });
 export type Health = z.infer<typeof Health>;
+
+/** One upgrade of a plan, with the path behind each finding it closes. */
+export const DraftUpgrade = z.object({
+  kind: z.enum(["refresh", "bump", "override"]),
+  package: z.string(),
+  from: z.string(),
+  to: z.string(),
+  jump: SemverJump,
+  cost: z.number(),
+  closes: z.array(
+    z.object({
+      key: FindingKey,
+      severity: Severity,
+      file: z.string().nullable().describe("The production file the shortest path starts from; null if none"),
+      chain: z.array(z.string()).describe("name@version steps from the loaded install to the vulnerable one"),
+    }),
+  ),
+  reviewers: z.array(z.object({ handle: z.string(), why: z.string() })),
+});
+export type DraftUpgrade = z.infer<typeof DraftUpgrade>;
+
+/** A plan as a pull request would carry it. */
+export const PlanDraft = z.object({
+  planId: PlanId,
+  runId: RunId,
+  repoId: RepoId,
+  approved: z.boolean(),
+  totalCost: z.number(),
+  uncovered: z.array(z.string()),
+  upgrades: z.array(DraftUpgrade),
+  title: z.string(),
+  body: z.string().describe("Markdown"),
+});
+export type PlanDraft = z.infer<typeof PlanDraft>;
