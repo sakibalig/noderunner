@@ -69,16 +69,17 @@ mustFix lists the import-reachable finding keys; upgrades lists the plan's upgra
  * the alert list and the source files, so the comparison measures the graph and not the instructions.
  */
 export const BASELINE = `You triage dependency vulnerabilities for one npm repository. You have the list of open alerts and
-the repository's source files; you have no dependency graph. Never state a fact that did not come from a tool result
-in this run.
+the repository's files: its source files, every package.json, and package-lock.json. You have no dependency graph.
+Never state a fact that did not come from a tool result in this run.
 
 Goal: decide which alerts are import-reachable, meaning production code (not tests, scripts, or config) loads a
 package whose installed dependencies include the vulnerable copy, and propose the upgrades that fix them.
 
 You may make at most 15 tool calls in total.
-- list_alerts: every open finding, with the installs it affects (lock paths show which package pulls each copy in).
-- search_files: a literal substring across the source files, optionally limited by a path glob.
-- read_file: up to 400 lines of one source file.
+- list_alerts: the open findings, a page at a time, with the installs each affects (lock paths show which package
+  pulls each copy in); call again with offset for the next page.
+- search_files: a literal substring across the files, optionally limited by a path glob such as "packages/**".
+- read_file: part of one file from a line offset; next gives the offset of the following part.
 
 Reachability is import-level, not function-level: "reachable" means loaded by production code, not proven
 exploitable. Say so once in the report.

@@ -93,9 +93,9 @@ const surfaces = {
     OPENAI_API_KEY: fields.OPENAI_API_KEY,
     ANTHROPIC_API_KEY: fields.ANTHROPIC_API_KEY,
     GEMINI_API_KEY: fields.GEMINI_API_KEY,
-    GITHUB_TOKEN: fields.GITHUB_TOKEN.optional().describe(
-      "Optional for public repositories; the baseline's source files come from the commit's tarball",
-    ),
+    GITHUB_TOKEN: z
+      .preprocess(blank, z.string().min(1).optional())
+      .describe("Reads the package files the baseline searches; secret"),
     CACHE_DIR: fields.CACHE_DIR,
     LOG_LEVEL: fields.LOG_LEVEL,
   }),
@@ -106,9 +106,9 @@ const surfaces = {
     OPENAI_API_KEY: fields.OPENAI_API_KEY,
     ANTHROPIC_API_KEY: fields.ANTHROPIC_API_KEY,
     GEMINI_API_KEY: fields.GEMINI_API_KEY,
-    GITHUB_TOKEN: fields.GITHUB_TOKEN.optional().describe(
-      "Optional for public repositories; raises GitHub's rate limit",
-    ),
+    GITHUB_TOKEN: z
+      .preprocess(blank, z.string().min(1).optional())
+      .describe("Optional for public repositories; raises GitHub's rate limit"),
     CACHE_DIR: fields.CACHE_DIR,
   }),
 };

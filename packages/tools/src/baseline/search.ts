@@ -40,7 +40,7 @@ export function searchFiles(deps: { readonly files: Files }): ToolDef<typeof Inp
       const matches: { path: string; line: number; excerpt: Quoted }[] = [];
       let truncated = false;
       for (const path of [...files.keys()].sort()) {
-        if (only !== null && !only.test(path)) continue;
+        if (only !== null && !only(path)) continue;
         const lines = (files.get(path) ?? "").split("\n");
         for (const [i, line] of lines.entries()) {
           if (!line.includes(input.text)) continue;

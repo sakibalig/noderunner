@@ -5,14 +5,29 @@
   "date": "2026-10-17",
   "labels": {
     "total": 56,
-    "reachable": 10,
-    "checked": 4,
-    "corrections": 0
+    "reachable": 12,
+    "checked": 5,
+    "corrections": [
+      {
+        "key": "GHSA-f38q-mgvj-vph7|protobufjs",
+        "tool": "dev-only",
+        "label": "import-reachable"
+      },
+      {
+        "key": "GHSA-j3f2-48v5-ccww|protobufjs",
+        "tool": "dev-only",
+        "label": "import-reachable"
+      }
+    ],
+    "notes": [
+      "An independent check, written outside Noderunner, recomputed every tier: imports parsed as text from the non-test files under packages/, resolved with npm's node_modules lookup against package-lock.json, walked through dependencies and optionalDependencies, with the affected installs taken from the graph. It agreed with the tool on 54 of 56 findings; the 2 it disagreed on are the corrections.",
+      "7 of the 12 import-reachable labels (brace-expansion) rest on one judgement: fastify-adapter.ts loads @fastify/static lazily, and nest installs it only as a root dev dependency. A reader who counts only always-loaded dependencies would label those 7, and the 2 protobufjs corrections, dev-only."
+    ]
   },
   "runs": [
     {
       "agent": "triage",
-      "runId": "01M55GB5JS1Q4YBF7XNCXRJG1M",
+      "runId": "01M55HQ931AGRQ9J0C9M4354NT",
       "status": "done",
       "unverified": false,
       "result": true,
@@ -29,46 +44,46 @@
         "GHSA-rgw5-rvv9-x895|brace-expansion"
       ],
       "precision": 1,
-      "recall": 1,
+      "recall": 0.8333333333333334,
       "upgrades": 3,
       "calls": 9,
-      "tokensIn": 55120,
-      "tokensOut": 6600,
-      "ms": 60661
+      "tokensIn": 41453,
+      "tokensOut": 6475,
+      "ms": 49103
     },
     {
       "agent": "baseline",
-      "runId": "01M55GD0TEZMJK03860P9ERD0S",
-      "status": "capped",
-      "unverified": true,
-      "result": true,
-      "mustFix": ["GHSA-2m8v-j782-fhvr|socket.io-parser"],
-      "precision": 1,
-      "recall": 0.1,
-      "upgrades": 2,
-      "calls": 15,
-      "tokensIn": 51942,
-      "tokensOut": 12581,
-      "ms": 104589
-    },
-    {
-      "agent": "baseline",
-      "runId": "01M55GG6YV8WPREFE6PSFJ0VVM",
+      "runId": "01M55HRS1HQR4VXB49HVFXYN2M",
       "status": "capped",
       "unverified": false,
       "result": true,
-      "mustFix": ["GHSA-2m8v-j782-fhvr|socket.io-parser", "GHSA-96hv-2xvq-fx4p|ws"],
-      "precision": 1,
-      "recall": 0.2,
+      "mustFix": [],
+      "precision": null,
+      "recall": 0,
       "upgrades": 0,
       "calls": 15,
-      "tokensIn": 36433,
-      "tokensOut": 14325,
-      "ms": 105690
+      "tokensIn": 24403,
+      "tokensOut": 11709,
+      "ms": 78585
+    },
+    {
+      "agent": "baseline",
+      "runId": "01M55HV5SA57KETGYN370ER1W6",
+      "status": "capped",
+      "unverified": false,
+      "result": true,
+      "mustFix": ["GHSA-2m8v-j782-fhvr|socket.io-parser", "GHSA-96hv-2xvq-fx4p|ws", "GHSA-58qx-3vcg-4xpx|ws"],
+      "precision": 1,
+      "recall": 0.25,
+      "upgrades": 1,
+      "calls": 15,
+      "tokensIn": 131774,
+      "tokensOut": 11575,
+      "ms": 85152
     },
     {
       "agent": "triage",
-      "runId": "01M55GKE5P7A02ESMA4GQ86WQ6",
+      "runId": "01M55HXRYAJQEH713AP2D880HG",
       "status": "done",
       "unverified": false,
       "result": true,
@@ -85,16 +100,16 @@
         "GHSA-rgw5-rvv9-x895|brace-expansion"
       ],
       "precision": 1,
-      "recall": 1,
+      "recall": 0.8333333333333334,
       "upgrades": 3,
-      "calls": 9,
-      "tokensIn": 62100,
-      "tokensOut": 7486,
-      "ms": 59639
+      "calls": 11,
+      "tokensIn": 91145,
+      "tokensOut": 6673,
+      "ms": 51214
     },
     {
       "agent": "triage",
-      "runId": "01M55GN8DDHJJZ9ND82EAFWXXE",
+      "runId": "01M55HZAYT2XDSJPCGR2DNEV81",
       "status": "done",
       "unverified": false,
       "result": true,
@@ -111,27 +126,27 @@
         "GHSA-rgw5-rvv9-x895|brace-expansion"
       ],
       "precision": 1,
-      "recall": 1,
+      "recall": 0.8333333333333334,
       "upgrades": 3,
-      "calls": 9,
-      "tokensIn": 41969,
-      "tokensOut": 6197,
-      "ms": 46213
+      "calls": 11,
+      "tokensIn": 85514,
+      "tokensOut": 6722,
+      "ms": 51491
     },
     {
       "agent": "baseline",
-      "runId": "01M55GPNHJKPN9CAYX7M4KAE2W",
+      "runId": "01M55J0X7X9Q4QX0RFM21SG0DK",
       "status": "capped",
       "unverified": false,
       "result": true,
-      "mustFix": ["GHSA-2m8v-j782-fhvr|socket.io-parser", "GHSA-96hv-2xvq-fx4p|ws"],
+      "mustFix": ["GHSA-2m8v-j782-fhvr|socket.io-parser", "GHSA-96hv-2xvq-fx4p|ws", "GHSA-58qx-3vcg-4xpx|ws"],
       "precision": 1,
-      "recall": 0.2,
+      "recall": 0.25,
       "upgrades": 0,
       "calls": 15,
-      "tokensIn": 153149,
-      "tokensOut": 12553,
-      "ms": 101109
+      "tokensIn": 193342,
+      "tokensOut": 11163,
+      "ms": 90329
     }
   ]
 }

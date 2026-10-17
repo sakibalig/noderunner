@@ -23,10 +23,13 @@ const columns: readonly Column[] = [
 ];
 
 function cell(runs: readonly RunScore[], column: Column): string {
-  const { median, min, max } = spread(runs.map(column.value));
+  const values = runs.map(column.value);
+  const { median, min, max } = spread(values);
   if (median === null || min === null || max === null) return "n/a";
   const middle = column.format(median);
-  return min === max ? middle : `${middle} (${column.format(min)}–${column.format(max)})`;
+  const known = values.filter((v) => v !== null).length;
+  const text = min === max ? middle : `${middle} (${column.format(min)}–${column.format(max)})`;
+  return known === runs.length ? text : `${text}, ${known} of ${runs.length} runs`;
 }
 
 /** Pure: results.md from results.json, the median of each agent's runs with the range beside it. */
@@ -48,6 +51,19 @@ export function table(results: Results): string {
     "",
     `Scored against a label for each of the ${results.labels.total} findings, ${results.labels.reachable} of them import-reachable; ${results.labels.checked} labels were confirmed by hand against the source and the lockfile (see \`eval/labels\`). Precision and recall are of each run's \`mustFix\` list against the import-reachable labels. Each cell is the median of the runs, with the range in brackets.`,
     "",
+    "## Labels",
+    "",
+    "The labels start from the tool's own tiers, so where they agree the graph agent's score measures faithfulness to its tiers, not independent correctness. The corrections below are where a reader of the code disagreed with the tool; the graph agent cannot score them.",
+    "",
+    ...(results.labels.corrections.length === 0
+      ? ["No corrections."]
+      : results.labels.corrections.map(
+          (c) => `- \`${c.key}\`: the tool said ${c.tool}, labelled ${c.label}.`,
+        )),
+    ...results.labels.notes.flatMap((note) => ["", note]),
+    "",
+    "## Results",
+    "",
     `| Agent | Runs | ${columns.map((c) => c.title).join(" | ")} |`,
     `| --- | --- | ${columns.map(() => "---").join(" | ")} |`,
     ...rows,
@@ -60,10 +76,9 @@ export function table(results: Results): string {
     "",
     "## Method and limits",
     "",
-    "- Both agents run the production agent loop (`runAgent`) with the same model, the same 15-call cap, and the same report and `result` block. The graph agent has the graph tools; the baseline has `list_alerts`, `search_files`, and `read_file` over the same source files the import parser read.",
+    "- Both agents run the production agent loop (`runAgent`) with the same model, the same 15-call cap, and the same report and `result` block. The graph agent has the graph tools; the baseline has `list_alerts`, `search_files`, and `read_file`.",
     "- A run that reaches the call cap gets one last turn with no tools to write its report, and stays marked `capped`.",
-    "- `list_alerts` shows the 40 most severe findings to both agents; the baseline cannot see the rest, while the graph agent's `reachability` covers every finding.",
-    `- Labels start from the tool's tiers and were checked by hand on the ${results.labels.checked} chains listed in the label file, with ${results.labels.corrections} ${results.labels.corrections === 1 ? "correction" : "corrections"}. A label set derived from the tool favours the graph agent where they agree, which is why the chains were checked against the source and the lockfile.`,
+    "- The baseline reads the same source files the import parser read, plus every package.json and package-lock.json. Both agents page through `list_alerts`, and the baseline's view leaves out the graph's tier and status.",
     "- One repository. The upgrades column counts proposals; they were not regenerated and re-verified here.",
     "",
   ].join("\n");

@@ -1,5 +1,7 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import type { Results, RunScore } from "./results.ts";
+import { Results, type RunScore } from "./results.ts";
 import { table } from "./table.ts";
 
 const run = (agent: RunScore["agent"], over: Partial<RunScore>): RunScore => ({
@@ -24,7 +26,13 @@ const results: Results = {
   sha: "c215fd9b4f583486c6ce39a3c43f257dc67e8329",
   model: "openai/gpt-5",
   date: "2026-10-17",
-  labels: { total: 56, reachable: 10, checked: 4, corrections: 0 },
+  labels: {
+    total: 56,
+    reachable: 12,
+    checked: 5,
+    corrections: [{ key: "G-1|protobufjs", tool: "dev-only", label: "import-reachable" }],
+    notes: ["A note."],
+  },
   runs: [
     run("triage", {}),
     run("triage", { ms: 100_000 }),
@@ -39,8 +47,14 @@ describe("table", () => {
     expect(md).toContain(
       "| Graph agent | 2 | 100% | 100% | 0 | 3 | 9 | 50,000 | 6,000 | 110 s (100 s–120 s) |",
     );
-    expect(md).toContain("| Baseline (files, no graph) | 2 | 50% | 10% (0%–20%) |");
+    expect(md).toContain("| Baseline (files, no graph) | 2 | 50%, 1 of 2 runs | 10% (0%–20%) |");
     expect(md).toContain("| baseline | `01JQZ8RN000000000000000000` | done, no result block | n/a | 0% |");
-    expect(md).toContain("with 0 corrections");
+    expect(md).toContain("- `G-1|protobufjs`: the tool said dev-only, labelled import-reachable.\n\nA note.");
+  });
+
+  it("renders the committed results.json to the committed results.md byte for byte", () => {
+    const root = join(import.meta.dirname, "..");
+    const committed = Results.parse(JSON.parse(readFileSync(join(root, "results.json"), "utf8")));
+    expect(table(committed)).toBe(readFileSync(join(root, "results.md"), "utf8"));
   });
 });

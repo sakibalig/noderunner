@@ -8,6 +8,7 @@ const file: LabelFile = {
   labels: { "G-1|qs": "import-reachable", "G-2|ws": "dev-only" },
   corrections: [],
   checked: [],
+  notes: [],
 };
 
 describe("labels", () => {

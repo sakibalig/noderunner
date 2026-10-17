@@ -166,6 +166,12 @@ export async function runAgent(
           );
           tokens.input += last.usage.input;
           tokens.output += last.usage.output;
+          deps.log.info({ runId, stop: last.stop, ...last.usage }, "agent.model.turn");
+          if (last.stop === "refusal") {
+            status = "failed";
+            report = "The model refused to continue this run.";
+            break;
+          }
           report = texts(last.content);
           unverified = !validateReport(agent, report, steps).ok;
           break;

@@ -109,9 +109,19 @@ section:
   than ingesting itself; it stops on a waiver in force, and gives the toolbox no `act` access.
 - The baseline's files come from ingestion stage 1 (`snapshot`) at the pinned commit, so both agents see the same
   source files.
-- The first attempt was stopped after its first baseline run: it spent its 15 calls in one turn and the agent loop
-  ended the run without a report, so it scored empty. That was a loop defect for both agents, so the loop now gives
-  a capped run one last turn with no tools to write its report, and every scored run comes from the fixed loop.
+- The first attempt was stopped during its second baseline run, after the first had spent its 15 calls in one turn
+  and the agent loop ended it without a report, so it scored empty. That was a loop defect for both agents, so the
+  loop now gives a capped run one last turn with no tools to write its report. The stopped run is marked failed.
+- A second attempt was scored, then withdrawn after review: `list_alerts` showed the baseline each finding's tier
+  (the graph's answer), the model saw only 25 of the 40 listed rows, `read_file` returned about 50 of 400 lines, and
+  the baseline could not read package.json or the lockfile. The baseline now sees no tier or status, both agents
+  page through `list_alerts` with every listed row reaching the model, `read_file` returns what fits with an exact
+  `next` offset, and the baseline also reads every package.json and package-lock.json.
+- Labels: an independent check outside Noderunner's code recomputed every tier and found two findings the import
+  parser misses (`createRequire(import.meta.url)('@grpc/grpc-js')` in `packages/microservices`); they are recorded
+  as corrections, so the graph agent's recall can now fall short.
+- The runner refuses a FalkorDB that is not local, and stops on a waiver in force rather than on any `Decision`
+  node, because the demo graph keeps a stale test waiver that changes no plan.
 
 ## Metrics
 

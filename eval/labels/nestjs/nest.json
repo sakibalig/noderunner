@@ -27,7 +27,7 @@
     "GHSA-96hv-2xvq-fx4p|ws": "import-reachable",
     "GHSA-9ppj-qmqm-q256|tar": "dev-only",
     "GHSA-ch52-4w7c-c8xp|http-cache-semantics": "dev-only",
-    "GHSA-f38q-mgvj-vph7|protobufjs": "dev-only",
+    "GHSA-f38q-mgvj-vph7|protobufjs": "import-reachable",
     "GHSA-fjxv-7rqg-78g4|form-data": "dev-only",
     "GHSA-fxqj-rqcc-2cmp|postcss": "dev-only",
     "GHSA-grv7-fg5c-xmjg|braces": "dev-only",
@@ -35,7 +35,7 @@
     "GHSA-h6ch-v84p-w6p9|diff": "dev-only",
     "GHSA-hmw2-7cc7-3qxx|form-data": "dev-only",
     "GHSA-hp3w-g68c-fv3c|sprintf-js": "dev-only",
-    "GHSA-j3f2-48v5-ccww|protobufjs": "dev-only",
+    "GHSA-j3f2-48v5-ccww|protobufjs": "import-reachable",
     "GHSA-jxxr-4gwj-5jf2|brace-expansion": "import-reachable",
     "GHSA-mh99-v99m-4gvg|brace-expansion": "import-reachable",
     "GHSA-p8p7-x288-28g6|request": "dev-only",
@@ -59,7 +59,20 @@
     "GHSA-w5hq-g745-h8pq|uuid": "dev-only",
     "GHSA-w8wr-v893-vjvp|tar": "dev-only"
   },
-  "corrections": [],
+  "corrections": [
+    {
+      "key": "GHSA-f38q-mgvj-vph7|protobufjs",
+      "tool": "dev-only",
+      "label": "import-reachable",
+      "why": "packages/microservices/server/server-grpc.ts line 134 and client/client-grpc.ts line 54 load @grpc/grpc-js at runtime with createRequire(import.meta.url)('@grpc/grpc-js'), a call the import parser does not resolve; @grpc/grpc-js 1.14.6 depends on @grpc/proto-loader ^0.8.0 (0.8.1), which depends on protobufjs ^7.5.5, installed at node_modules/protobufjs 7.6.1. The load is lazy and the package optional for users, like @fastify/static, so it is labelled the same way"
+    },
+    {
+      "key": "GHSA-j3f2-48v5-ccww|protobufjs",
+      "tool": "dev-only",
+      "label": "import-reachable",
+      "why": "packages/microservices/server/server-grpc.ts line 134 and client/client-grpc.ts line 54 load @grpc/grpc-js at runtime with createRequire(import.meta.url)('@grpc/grpc-js'), a call the import parser does not resolve; @grpc/grpc-js 1.14.6 depends on @grpc/proto-loader ^0.8.0 (0.8.1), which depends on protobufjs ^7.5.5, installed at node_modules/protobufjs 7.6.1. The load is lazy and the package optional for users, like @fastify/static, so it is labelled the same way"
+    }
+  ],
   "checked": [
     {
       "key": "GHSA-58qx-3vcg-4xpx|ws",
@@ -76,6 +89,14 @@
     {
       "key": "GHSA-3wwx-pv8p-q78v|undici",
       "how": "dev-only: a code search of the repository finds undici only in tools/benchmarks/package-lock.json; no file under packages/ imports it"
+    },
+    {
+      "key": "GHSA-f38q-mgvj-vph7|protobufjs",
+      "how": "packages/microservices/server/server-grpc.ts line 134 and client/client-grpc.ts line 54 load @grpc/grpc-js at runtime with createRequire(import.meta.url)('@grpc/grpc-js'), a call the import parser does not resolve; @grpc/grpc-js 1.14.6 depends on @grpc/proto-loader ^0.8.0 (0.8.1), which depends on protobufjs ^7.5.5, installed at node_modules/protobufjs 7.6.1. The load is lazy and the package optional for users, like @fastify/static, so it is labelled the same way"
     }
+  ],
+  "notes": [
+    "An independent check, written outside Noderunner, recomputed every tier: imports parsed as text from the non-test files under packages/, resolved with npm's node_modules lookup against package-lock.json, walked through dependencies and optionalDependencies, with the affected installs taken from the graph. It agreed with the tool on 54 of 56 findings; the 2 it disagreed on are the corrections.",
+    "7 of the 12 import-reachable labels (brace-expansion) rest on one judgement: fastify-adapter.ts loads @fastify/static lazily, and nest installs it only as a root dev dependency. A reader who counts only always-loaded dependencies would label those 7, and the 2 protobufjs corrections, dev-only."
   ]
 }

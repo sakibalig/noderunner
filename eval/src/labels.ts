@@ -18,6 +18,7 @@ export const LabelFile = z.object({
   checked: z
     .array(z.object({ key: z.string(), how: z.string().min(1) }))
     .describe("Labels confirmed by hand against the source and the lockfile"),
+  notes: z.array(z.string().min(1)).default([]).describe("What a reader of the results needs to weigh them"),
 });
 export type LabelFile = z.infer<typeof LabelFile>;
 

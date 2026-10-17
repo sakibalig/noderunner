@@ -11,6 +11,7 @@ import {
   Sha,
   type Tier,
 } from "@noderunner/core";
+import { GitData, members } from "@noderunner/executor";
 import { connect } from "@noderunner/graph";
 import { api, tools as cypher } from "@noderunner/graph/cypher";
 import { GitHub, snapshot } from "@noderunner/ingest";
@@ -52,6 +53,12 @@ if (!Number.isInteger(RUNS) || RUNS < 1) {
   process.exit(1);
 }
 
+const local = new Set(["localhost", "127.0.0.1", "[::1]", "::1"]);
+if (!local.has(new URL(env.FALKORDB_URL).hostname)) {
+  console.error("pnpm eval runs against a local FalkorDB only; it writes runs and plans into the graph");
+  process.exit(1);
+}
+
 const log = pino({ level: env.LOG_LEVEL });
 const db = await connect({
   url: env.FALKORDB_URL,
@@ -66,7 +73,7 @@ try {
   );
   for (const pinned of repos) {
     const [owner = "", name = ""] = pinned.repo.split("/");
-    const repo: RepoRef = { owner, name, sha: Sha.parse(pinned.sha) };
+    const repo = { owner, name, sha: Sha.parse(pinned.sha) };
     const graph = graphName(repo);
     const labelPath = join(root, "labels", owner, `${name}.json`);
     const g = db.graph(graph);
@@ -93,6 +100,7 @@ try {
         labels: Object.fromEntries(Object.entries(labels).sort(([a], [b]) => (a < b ? -1 : 1))),
         corrections: [],
         checked: [],
+        notes: [],
       };
       mkdirSync(dirname(labelPath), { recursive: true });
       writeFileSync(labelPath, `${JSON.stringify(file, null, 2)}\n`);
@@ -114,20 +122,15 @@ try {
     if (llm.provider !== "openai") throw new LabelError(`no model adapter for ${llm.provider}`);
     const model = new OpenAIModel(llmKey(env), llm.model);
     const github = new GitHub(env.GITHUB_TOKEN === undefined ? {} : { token: env.GITHUB_TOKEN });
-    let files: Promise<ReadonlyMap<string, string>> | null = null;
+    log.info({ repo: pinned.repo }, "eval.files.started");
+    const files = await sources(g, repo, github);
+    log.info({ repo: pinned.repo, files: files.size }, "eval.files.finished");
     const tools = createTools({
       db,
       clock: systemClock,
       ids: ulidIds,
       registry: npm({ dir: env.CACHE_DIR, clock: systemClock }),
-      files: async () => {
-        files ??= snapshot(
-          { g, repo, target: { kind: "repo" } },
-          { forge: { head: github.head.bind(github), tarball: github.tarball.bind(github) } },
-          { onProgress: () => {}, signal: never },
-        ).then((snap) => snap.files);
-        return files;
-      },
+      files: async () => files,
     });
     // No `act` access: the evaluation records no decision and opens no pull request.
     const toolbox = createToolbox(
@@ -164,7 +167,8 @@ try {
         total: keys.length,
         reachable: labelled.size,
         checked: labels.checked.length,
-        corrections: labels.corrections.length,
+        corrections: labels.corrections.map(({ key, tool, label }) => ({ key, tool, label })),
+        notes: labels.notes,
       },
       runs,
     });
@@ -178,4 +182,34 @@ try {
   process.exitCode = 1;
 } finally {
   await db.close();
+}
+
+/**
+ * What the baseline may read: the source files ingestion stage 1 kept at the pinned commit, plus the root
+ * package.json, package-lock.json, and each workspace's package.json, so it can trace chains through the lockfile.
+ */
+async function sources(
+  g: ReturnType<typeof db.graph>,
+  repo: RepoRef & { readonly sha: Sha },
+  github: GitHub,
+): Promise<ReadonlyMap<string, string>> {
+  const snap = await snapshot(
+    { g, repo, target: { kind: "repo" } },
+    { forge: { head: github.head.bind(github), tarball: github.tarball.bind(github) } },
+    { onProgress: () => {}, signal: AbortSignal.timeout(120_000) },
+  );
+  if (env.GITHUB_TOKEN === undefined)
+    throw new LabelError("GITHUB_TOKEN is needed to read the package files the baseline searches");
+  const reader = new GitData({ token: env.GITHUB_TOKEN });
+  const read = async (path: string) => {
+    const text = await reader.read(repo, repo.sha, path, AbortSignal.timeout(60_000));
+    if (text === null) throw new LabelError(`${repo.owner}/${repo.name} has no ${path} at ${repo.sha}`);
+    return text;
+  };
+  const lock = await read("package-lock.json");
+  const manifests = ["package.json", ...members(lock).map((path) => `${path}/package.json`)];
+  const out = new Map(snap.files);
+  out.set("package-lock.json", lock);
+  for (const path of manifests) out.set(path, await read(path));
+  return out;
 }

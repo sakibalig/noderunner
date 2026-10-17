@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@noderunner/core": "workspace:*",
+    "@noderunner/executor": "workspace:*",
     "@noderunner/graph": "workspace:*",
     "@noderunner/ingest": "workspace:*",
     "@noderunner/planner": "workspace:*",

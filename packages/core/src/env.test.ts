@@ -111,4 +111,18 @@ describe("parseEnv", () => {
     );
     expect(() => parseEnv("cli", {})).toThrow("FALKORDB_URL");
   });
+
+  it.each(["cli", "eval"] as const)("treats a blank GITHUB_TOKEN as unset for %s", (surface) => {
+    const env = { FALKORDB_URL: "redis://localhost:6379", OPENAI_API_KEY: "k", GITHUB_TOKEN: "" };
+    expect(parseEnv(surface, env).GITHUB_TOKEN).toBeUndefined();
+  });
+
+  it("gives eval an optional GitHub token and a log level", () => {
+    const env = parseEnv("eval", {
+      FALKORDB_URL: "redis://localhost:6379",
+      OPENAI_API_KEY: "k",
+      GITHUB_TOKEN: "t",
+    });
+    expect([env.GITHUB_TOKEN, env.LOG_LEVEL]).toEqual(["t", "info"]);
+  });
 });

@@ -30,7 +30,8 @@ export const Results = z.object({
     total: z.number().int(),
     reachable: z.number().int(),
     checked: z.number().int(),
-    corrections: z.number().int(),
+    corrections: z.array(z.object({ key: z.string(), tool: z.string(), label: z.string() })),
+    notes: z.array(z.string()),
   }),
   runs: z.array(RunScore),
 });

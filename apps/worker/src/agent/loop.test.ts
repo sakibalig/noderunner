@@ -185,6 +185,12 @@ describe("runAgent", () => {
     expect(skipped?.map((b) => (b.type === "tool_result" ? b.toolUseId : ""))).toEqual(["c15"]);
   });
 
+  it("fails a capped run whose final turn is refused", async () => {
+    const many = Array.from({ length: 16 }, (_, i) => call(`c${i}`, "list_alerts"));
+    const { outcome } = await run(new Recorded([tools(...many), { stop: "refusal", content: [], usage }]));
+    expect(outcome).toMatchObject({ status: "failed", result: null });
+  });
+
   it("returns a bad tool input to the model as an error and carries on", async () => {
     const model = new Recorded([
       tools(call("c1", "reachability", { keys: "not a list" })),
