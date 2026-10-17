@@ -14,6 +14,6 @@ describe("members", () => {
   });
 
   it.each(["../etc", "packages/../../x", "/abs"])("refuses %j, which leaves the repository", (path) => {
-    expect(() => members(lock([path]))).toThrow(expect.objectContaining({ code: "executor.missing" }));
+    expect(() => members(lock([path]))).toThrow(expect.objectContaining({ code: "executor.unsupported" }));
   });
 });

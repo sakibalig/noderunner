@@ -28,6 +28,16 @@ describe("edit", () => {
     },
   );
 
+  it("keeps inline arrays and CRLF line endings untouched", () => {
+    const before = '{\r\n  "files": ["dist", "lib"],\r\n  "dependencies": { "express": "^4.17.1" }\r\n}\r\n';
+    const bumped = edit(before, [{ kind: "bump", package: "express", to: "4.21.2" }]).manifest;
+    expect(bumped).toBe(before.replace("^4.17.1", "^4.21.2"));
+    const pinned = edit(before, [{ kind: "override", package: "ws", to: "8.21.0" }]).manifest;
+    expect(pinned.startsWith('{\r\n  "files": ["dist", "lib"],')).toBe(true);
+    expect(/[^\r]\n/.test(pinned)).toBe(false);
+    expect(JSON.parse(pinned).overrides).toEqual({ ws: "8.21.0" });
+  });
+
   it("keeps a missing final newline missing", () => {
     const before = manifest({ express: "^4.17.1" }).trimEnd();
     expect(edit(before, [{ kind: "refresh", package: "qs", to: "6.7.3" }]).manifest.endsWith("}")).toBe(true);
@@ -63,6 +73,17 @@ describe("edit", () => {
   });
 
   it.each([
+    [
+      "an aliased direct dependency",
+      manifest({ ws: "npm:ws@8" }),
+      { kind: "override" as const, package: "ws" },
+    ],
+    [
+      "a git direct dependency",
+      manifest({ ws: "github:websockets/ws" }),
+      { kind: "override" as const, package: "ws" },
+    ],
+    ["a manifest that is not JSON", "{ nope", { kind: "bump" as const, package: "express" }],
     [
       "a range it cannot rewrite",
       manifest({ express: ">=1.0.0" }),

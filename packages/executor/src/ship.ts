@@ -19,6 +19,11 @@ import { ExecutorError } from "./errors.ts";
 
 const MANIFEST = "package.json";
 const LOCK = "package-lock.json";
+const MANIFEST_BYTES = 1024 * 1024;
+/** Matches the LIMIT on `ship.keys` and `tier.reachable`; a full page means the comparison would be truncated. */
+const KEYS = 5000;
+/** Writes after the pull request exists must land even when the caller has given up. */
+const RECORD_MS = 10_000;
 
 /** Re-ingests the repository at `repo.sha` into `verify:<runId>` with both package files replaced. */
 export type Reingest = (
@@ -48,20 +53,20 @@ export function shipper(deps: Deps): Ship {
   const shipping = new Set<string>();
   return async (req, opts) => {
     const { signal } = opts;
-    const g = deps.db.graph(req.graph);
-    const [plan] = await g.query(tools.ship.load, { planId: req.planId }, signal);
-    if (plan === undefined) throw new ExecutorError("executor.missing", "No such plan");
-    if (plan.approved !== true)
-      throw new ExecutorError("executor.unapproved", "The plan has not been approved");
-    if (plan.shipped !== null)
-      throw new ExecutorError("executor.shipped", "The plan already has a pull request");
     if (shipping.has(req.planId))
       throw new ExecutorError("executor.busy", "The plan is already being shipped");
-    if (plan.sha === null)
-      throw new ExecutorError("executor.missing", "The repository has not finished ingesting");
-    if (plan.upgrades.length === 0) throw new ExecutorError("executor.missing", "The plan has no upgrades");
     shipping.add(req.planId);
     try {
+      const g = deps.db.graph(req.graph);
+      const [plan] = await g.query(tools.ship.load, { planId: req.planId }, signal);
+      if (plan === undefined) throw new ExecutorError("executor.missing", "No such plan");
+      if (plan.approved !== true)
+        throw new ExecutorError("executor.unapproved", "The plan has not been approved");
+      if (plan.shipped !== null)
+        throw new ExecutorError("executor.shipped", "The plan already has a pull request");
+      if (plan.sha === null)
+        throw new ExecutorError("executor.missing", "The repository has not finished ingesting");
+      if (plan.upgrades.length === 0) throw new ExecutorError("executor.missing", "The plan has no upgrades");
       const repo = { owner: plan.owner, name: plan.name, sha: plan.sha as Sha };
       const [manifest, lock] = await Promise.all([
         deps.forge.read(repo, repo.sha, MANIFEST, signal),
@@ -72,6 +77,8 @@ export function shipper(deps: Deps): Ship {
           "executor.missing",
           "The repository has no root package.json and package-lock.json",
         );
+      if (Buffer.byteLength(manifest) > MANIFEST_BYTES)
+        throw new ExecutorError("executor.unsupported", "package.json is larger than 1 MB");
       const edited = edit(manifest, plan.upgrades);
       const workspaces = await Promise.all(
         members(lock).map(async (path) => {
@@ -131,7 +138,7 @@ export function shipper(deps: Deps): Ship {
           newFindings: verification.newFindings,
           now: deps.clock.now(),
         },
-        signal,
+        AbortSignal.timeout(RECORD_MS),
       );
       return Shipment.parse({ outcome: "opened", url: opened.url, branch, verification });
     } finally {
@@ -148,14 +155,14 @@ export function members(lock: string): readonly string[] {
   try {
     packages = (JSON.parse(lock) as { packages?: unknown }).packages;
   } catch {
-    throw new ExecutorError("executor.missing", "package-lock.json is not valid JSON");
+    throw new ExecutorError("executor.unsupported", "package-lock.json is not valid JSON");
   }
   if (typeof packages !== "object" || packages === null) return [];
   return Object.keys(packages).filter((path) => {
     if (path === "" || path.startsWith("node_modules/") || path.includes("/node_modules/")) return false;
     if (!path.split("/").every((part) => segment.test(part)))
       throw new ExecutorError(
-        "executor.missing",
+        "executor.unsupported",
         "package-lock.json lists a workspace outside the repository",
       );
     return true;
@@ -186,7 +193,10 @@ async function check(
     await deps.reingest(req.repo, files, req.runId, signal);
     const reached = new Set((await v.query(tools.tier.reachable, { keys: [] }, signal)).map((r) => r.key));
     const after = (await v.query(tools.ship.keys, {}, signal)).map((r) => r.key);
-    const before = new Set((await g.query(tools.ship.keys, {}, signal)).map((r) => r.key));
+    const known = (await g.query(tools.ship.keys, {}, signal)).map((r) => r.key);
+    if (after.length >= KEYS || known.length >= KEYS || reached.size >= KEYS)
+      throw new ExecutorError("executor.verify", `More than ${KEYS} alerts; too many to compare reliably`);
+    const before = new Set(known);
     const present = new Set(after);
     const stillOpen = req.targets.filter((k) => present.has(k));
     const newFindings = after.filter((k) => !before.has(k));
@@ -200,6 +210,10 @@ async function check(
       reachable: newFindings.filter((k) => reached.has(k)),
     };
   } finally {
-    if ((await deps.db.list()).includes(v.name)) await v.drop().catch(() => undefined);
+    // Cleanup must not replace the error that brought us here.
+    await deps.db
+      .list()
+      .then((names) => (names.includes(v.name) ? v.drop() : undefined))
+      .catch(() => undefined);
   }
 }

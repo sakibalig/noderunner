@@ -44,29 +44,32 @@ type Shipment =
 
 ```ts
 // packages/executor/src/index.ts
+/** Re-ingests the repository at `repo.sha` into `verify:<runId>` with both package files replaced. */
+export type Reingest = (repo: RepoRef & { sha: Sha }, override: { manifest: string; lock: string }, runId: RunId,
+  signal: AbortSignal) => Promise<void>;
 export type Deps = {
-  readonly db: Db; readonly forge: Forge; readonly sandbox: Sandbox; readonly clock: Clock; readonly ids: Ids;
-  readonly ingest: typeof ingest;    // from packages/ingest, bound to its own ports by the composition root
-  readonly target: string;           // PR_TARGET_OWNER
+  readonly db: Db; readonly forge: Pick<Forge, "read" | "propose">; readonly sandbox: Sandbox;
+  readonly clock: Clock; readonly reingest: Reingest;   // ingest, bound to its ports by the composition root
+  readonly target: string;                              // PR_TARGET_OWNER
 };
-export type Opts = { readonly signal: AbortSignal; readonly onProgress: (e: Progress) => void };
+export type Opts = { readonly signal: AbortSignal; readonly onProgress: (p: Progress) => void };
 export type Progress = { readonly step: "sandbox" | "verify"; readonly ms: number };
 
-/** Runs steps 1 to 8. Throws `ExecutorError` for every failure listed under Failures. */
-export function ship(deps: Deps, req: { graph: GraphName; runId: RunId; planId: PlanId }, opts: Opts):
+/** Steps 1 to 8 behind a per-plan lock taken before the first await. Throws `ExecutorError` for every failure below. */
+export function shipper(deps: Deps): (req: { graph: GraphName; runId: RunId; planId: PlanId }, opts: Opts) =>
   Promise<Shipment>;
 
-/** Steps 2 to 5 only, with no write to the repository graph or to GitHub. Used by `eval` for baseline upgrades. */
-export function verify(deps: Deps, req: { graph: GraphName; runId: RunId; upgrades: readonly Upgrade[] },
-  opts: Opts): Promise<Verification>;
-
-/** Pure: applies bumps and overrides to `package.json` text, preserving its formatting. */
-export function edit(manifest: string, upgrades: readonly Upgrade[]):
+/** Pure: applies bumps and overrides by splicing only the changed values into the `package.json` text. */
+export function edit(manifest: string, upgrades: readonly Pick<Upgrade, "kind" | "package" | "to">[]):
   { manifest: string; refresh: readonly string[] };
 
-/** Pure: renders the pull request description from graph data. */
-export function describe(input: Brief): string;
+/** The plan as the pull request carries it; with a verification, the description reports it. */
+export function draft(g: G, repoId: string, planId: string, signal: AbortSignal, verification?: Verification):
+  Promise<PlanDraft | null>;
 ```
+
+`Sandbox.regenerate` also receives `workspaces`, the `package.json` of each workspace the lockfile lists. The
+separate `verify` entry point for the evaluation is not built; T24 does not need it.
 
 `Forge.propose` hides the Git Data API: it creates the two blobs, a tree on `change.base`, a commit whose only
 parent is `change.base`, and `refs/heads/<branch>` (moving the ref when it already exists), then opens the pull
@@ -96,8 +99,8 @@ that `POST /plans/:id/ship` starts (R2, R8).
      object when absent. An existing nested override object for the package is refused with `range`.
    - `refresh`: no change to the manifest; the package name joins the `refresh` list for `npm update`.
 
-   Indentation is detected with `detect-indent` and reused, key order is kept by editing the parsed object in place,
-   and the final newline is kept or omitted as in the original.
+   Only the changed values are spliced into the text (`jsonc-parser`), so indentation, line endings, inline arrays,
+   key order, and the final newline are kept byte for byte.
 4. **Regenerate the lockfile** with `Sandbox.regenerate({ manifest, lock }, refresh, signal)` (below). The returned
    `lock` must parse as JSON with `lockfileVersion` 2 or 3.
 5. **Verify** into `verify:<runId>`, a name built by `verifyName` in core, never taken from a caller (R6):
@@ -105,7 +108,7 @@ that `POST /plans/:id/ship` starts (R2, R8).
      `{ kind: "verify", runId, override: { manifest, lock } }`, the edited `package.json` and the regenerated
      lockfile, so every file, import, `LOADS`, `DECLARES`, and `AFFECTS` edge is derived afresh from the same source
      files the repository graph was built from ([ingest](ingest.md#interface)). Then run the tier query
-     (`tier.reachable`, `tier.direct`, and `tier.rest`, the constants `reachability` runs) on that graph.
+     (`tier.reachable`, the constant `reachability` runs) on that graph.
    - Compare, by finding key, with `ship.keys`: `targeted` counts the plan's `CLOSES` targets; `stillOpen` lists
      the targets that still have an `AT` edge in the verification graph; `closed` is `targeted` minus that list's
      length; and `newFindings` lists every key with an `AT` edge in the verification graph and none in the

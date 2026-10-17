@@ -102,7 +102,7 @@ const plan = write(
   `MATCH (q:Finding {key: $qs}), (e:Finding {key: $express})
 CREATE (run:Run {id: $runId, agent: "triage", status: "done"})
 CREATE (run)-[:PROPOSED]->(p:Plan {id: $planId, created_at: 1, total_cost: 1, uncovered: [], approved: $approved})
-CREATE (p)-[:INCLUDES]->(u:Upgrade {id: "u1", kind: "refresh", package: "express", from: "4.17.1", to: "4.22.3",
+CREATE (p)-[:INCLUDES]->(u:Upgrade {id: "u1", kind: $kind, package: "express", from: "4.17.1", to: "4.22.3",
                                     semver_jump: "minor", cost: 1})
 CREATE (u)-[:CLOSES]->(q)
 CREATE (u)-[:CLOSES]->(e)`,
@@ -139,7 +139,13 @@ afterAll(async () => {
 });
 
 async function fixture(
-  options: { approved?: boolean; sandbox?: Sandbox; extra?: Record<string, string[]> } = {},
+  options: {
+    approved?: boolean;
+    sandbox?: Sandbox;
+    extra?: Record<string, string[]>;
+    kind?: "refresh" | "bump";
+    after?: () => Promise<void>;
+  } = {},
 ) {
   const repo: RepoRef = { owner: "acme", name: `mini-${token(8).toLowerCase()}` };
   const graph = graphName(repo);
@@ -164,9 +170,18 @@ async function fixture(
   );
   const runId = RunId.parse(`01JQZ8${token(20)}`);
   const planId = PlanId.parse(`01JQZ8${token(20)}`);
-  await db
-    .graph(graph)
-    .query(plan, { qs: QS, express: EXPRESS, runId, planId, approved: options.approved ?? true }, never);
+  await db.graph(graph).query(
+    plan,
+    {
+      qs: QS,
+      express: EXPRESS,
+      runId,
+      planId,
+      approved: options.approved ?? true,
+      kind: options.kind ?? "refresh",
+    },
+    never,
+  );
   const proposed: { repo: RepoRef; change: Change }[] = [];
   const reingest: Reingest = async (r, override, id, signal) => {
     await ingest(
@@ -178,6 +193,7 @@ async function fixture(
         signal,
       },
     );
+    await options.after?.();
   };
   const ship = shipper({
     db,
@@ -253,12 +269,31 @@ describe("ship", () => {
     expect(proposed[0]?.change.body).toContain("Still open:");
   });
 
-  it("fails with upstream when the sandbox fails, leaving no verification graph", async () => {
-    const { ship, req } = await fixture({
+  it("fails with upstream when npm writes something that is not a lockfile", async () => {
+    const { ship, req, proposed } = await fixture({
       sandbox: { regenerate: async () => ({ lock: "{ not json" }) },
     });
     await expect(ship(req, opts)).rejects.toMatchObject({ code: "executor.sandbox", surface: "upstream" });
+    expect(proposed).toEqual([]);
+  });
+
+  it("drops the verification graph when verification fails after the re-ingest wrote it", async () => {
+    const { ship, req, proposed } = await fixture({
+      after: async () => {
+        expect(await dropped(req.runId)).toBe(false);
+        throw new Error("the graph went away");
+      },
+    });
+    await expect(ship(req, opts)).rejects.toThrow("the graph went away");
     expect(await dropped(req.runId)).toBe(true);
+    expect(proposed).toEqual([]);
+  });
+
+  it("bumps a direct dependency, changing only its value in package.json", async () => {
+    const { ship, req, proposed } = await fixture({ kind: "bump" });
+    await ship(req, opts);
+    const original = readFileSync(join(mini, "package.json"), "utf8");
+    expect(proposed[0]?.change.files[0]?.content).toBe(original.replace('"^4.17.1"', '"^4.22.3"'));
   });
 
   it("lets only one of two concurrent ships of a plan through", async () => {

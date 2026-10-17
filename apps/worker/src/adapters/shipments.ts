@@ -16,6 +16,7 @@ import type { Log } from "../log.ts";
 
 const refusals = new Set<ErrorCode>(["unapproved", "shipped", "busy"]);
 const empty = { nodes: [], edges: [], cypher: [] };
+const FINISH_MS = 10_000;
 
 /** Ships through the same open_pull_request tool a fixer run would call, so every shipment is a traced run. */
 export class GraphShipments implements Shipments {
@@ -80,7 +81,8 @@ export class GraphShipments implements Shipments {
         tokensOut: 0,
         now: clock.now(),
       },
-      signal,
+      // The run must not be left running because the job's deadline passed.
+      AbortSignal.timeout(FINISH_MS),
     );
     if (!result.ok) {
       log.warn({ runId, planId, code }, "executor.ship.failed");

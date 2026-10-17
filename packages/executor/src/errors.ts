@@ -6,6 +6,7 @@ export type ExecutorCode =
   | "executor.busy"
   | "executor.missing"
   | "executor.range"
+  | "executor.unsupported"
   | "executor.sandbox"
   | "executor.forge"
   | "executor.verify";
@@ -16,6 +17,7 @@ const surfaces: Readonly<Record<ExecutorCode, ErrorCode>> = {
   "executor.busy": "busy",
   "executor.missing": "missing",
   "executor.range": "range",
+  "executor.unsupported": "unsupported",
   "executor.sandbox": "upstream",
   "executor.forge": "upstream",
   "executor.verify": "internal",

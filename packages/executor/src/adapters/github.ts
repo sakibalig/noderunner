@@ -30,9 +30,13 @@ export class GitData implements Pick<Forge, "read" | "propose"> {
     );
     if (res.status === 404) return null;
     if (!res.ok) throw upstream("read", res.status);
+    const tooLarge = () => new ExecutorError("executor.unsupported", `${path} is larger than 20 MB`);
+    if (Number(res.headers.get("content-length") ?? 0) > READ_BYTES) {
+      await res.body?.cancel();
+      throw tooLarge();
+    }
     const text = await res.text();
-    if (Buffer.byteLength(text) > READ_BYTES)
-      throw new ExecutorError("executor.missing", `${path} is too large`);
+    if (Buffer.byteLength(text) > READ_BYTES) throw tooLarge();
     return text;
   }
 
