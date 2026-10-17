@@ -26,6 +26,15 @@ export class Ring {
     return framed;
   }
 
+  /**
+   * Hands an event to current listeners without storing it, under the last stored id, so a late or reconnecting
+   * subscriber never loses stored events to a flood of transient ones (streamed text).
+   */
+  pass(event: RunEvent): void {
+    const framed = { id: this.#next - 1, event };
+    for (const listener of this.#listeners) listener(framed);
+  }
+
   /** Events after `id`, or null when some of them were already evicted; `retained` then has what is left. */
   since(id: number): readonly Framed[] | null {
     const first = this.#frames[0]?.id ?? this.#next;
