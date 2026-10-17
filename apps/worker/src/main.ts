@@ -2,14 +2,20 @@ import { serve } from "@hono/node-server";
 import { EnvError, llmConfig, llmKey, parseEnv } from "@noderunner/core";
 import { connect } from "@noderunner/graph";
 import { GitHistory, GitHub, ingest, OSV } from "@noderunner/ingest";
+import { npm } from "@noderunner/planner";
+import { createToolbox, createTools } from "@noderunner/tools";
 import { pino } from "pino";
+import { GraphArchive } from "./adapters/archive.ts";
 import { GraphCatalog } from "./adapters/catalog.ts";
 import { systemClock, ulidIds } from "./adapters/clock.ts";
+import { OpenAIModel } from "./adapters/model/openai.ts";
 import { reachable } from "./adapters/probe.ts";
+import { runAgent } from "./agent/loop.ts";
 import { createApp } from "./api/app.ts";
 import type { Ingester } from "./jobs/catalog.ts";
 import { Limiter } from "./jobs/limit.ts";
 import { Jobs } from "./jobs/queue.ts";
+import { type Runner, Runs } from "./jobs/runs.ts";
 
 const SHUTDOWN_MS = 10_000;
 const RATE = { limit: 10, windowMs: 3_600_000, clients: 10_000 };
@@ -46,8 +52,48 @@ const ingester: Ingester = (repo, { onProgress, signal }) =>
     { target: { kind: "repo" }, onProgress, signal },
   );
 const jobs = new Jobs({ ingest: ingester, clock: systemClock, ids: ulidIds, log });
+
+const tools = createTools({
+  db,
+  clock: systemClock,
+  ids: ulidIds,
+  registry: npm({ dir: env.CACHE_DIR, clock: systemClock }),
+});
+const toolbox = createToolbox(
+  { db, clock: systemClock, ids: ulidIds, tools },
+  { access: ["read", "derive", "act"] },
+);
+// Only the OpenAI adapter is built (llm.md); another provider starts the worker without agent runs.
+const model = llm.provider === "openai" ? new OpenAIModel(key, llm.model) : null;
+const runner: Runner = async ({ repo, graph, runId, emit, signal }) => {
+  if (model === null) throw new Error(`no adapter for ${llm.provider}`);
+  await runAgent(
+    { model, modelId: llm.id, toolbox, tools, db, clock: systemClock, log },
+    {
+      repo,
+      graph,
+      runId,
+      agent: "triage",
+      kickoff: {},
+      hooks: {
+        onStart: (step) => log.info({ runId, stepId: step.stepId, tool: step.tool }, "tool.call.started"),
+        onFinish: (step) =>
+          log.info(
+            { runId, stepId: step.stepId, ok: step.ok, ms: step.ms },
+            step.ok ? "tool.call.finished" : "tool.call.failed",
+          ),
+      },
+      emit,
+      signal,
+    },
+  );
+};
+const archive = new GraphArchive(db, systemClock);
+const runs = new Runs({ run: runner, archive, model: llm.id, clock: systemClock, ids: ulidIds, log });
 const app = createApp({
   jobs,
+  runs,
+  archive,
   catalog: new GraphCatalog(db),
   limiter: new Limiter(RATE, systemClock),
   probe: { falkordb: reachable(env.FALKORDB_URL), model: key.length > 0 },
@@ -61,7 +107,10 @@ const server = serve({ fetch: app.fetch, port: env.PORT }, () => {
 
 async function shutdown(): Promise<void> {
   server.close();
-  await Promise.race([jobs.stop(), new Promise((resolve) => setTimeout(resolve, SHUTDOWN_MS))]);
+  await Promise.race([
+    Promise.all([jobs.stop(), runs.stop()]),
+    new Promise((resolve) => setTimeout(resolve, SHUTDOWN_MS)),
+  ]);
   await db.close();
   log.info({}, "worker.stopped");
   process.exit(0);

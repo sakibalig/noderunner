@@ -1,4 +1,5 @@
-import { write } from "../define.ts";
+import { z } from "zod";
+import { query, write } from "../define.ts";
 
 /**
  * Params: `{ id, agent, model, now }`, with `model` null for mcp and ui runs. Called by whoever starts a run, before
@@ -16,4 +17,14 @@ export const finish = write(
   `MATCH (r:Run {id: $id})
 SET r.status = $status, r.report = $report, r.result = $result, r.unverified = $unverified,
     r.tokens_in = $tokensIn, r.tokens_out = $tokensOut, r.finished_at = $now`,
+);
+
+/** Params: `{ id, events }`: the run's events as JSON, minus text deltas, so a finished run replays exactly. */
+export const record = write("run.record", `MATCH (r:Run {id: $id}) SET r.events = $events`);
+
+/** Params: `{ id }`. The stored events, or null while the run has not finished. */
+export const events = query(
+  "run.events",
+  `MATCH (r:Run {id: $id}) RETURN r.status AS status, r.events AS events LIMIT 1`,
+  z.object({ status: z.string(), events: z.string().nullable() }),
 );
