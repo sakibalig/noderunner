@@ -112,12 +112,12 @@ Exit: the full demo script runs on the hosted build; feature freeze at midnight.
 | ID | Task | Owner | Hours | Needs | Done when | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | T19 | Ingest stage 6: prune, re-ingest, Finding status; staleness rules | Shaukat | 2 | T13 | Re-ingest at a newer commit keeps decisions and flags stale ones | done (PR merged), with `ingest()` and the worker's real ingester and graph catalog; staleness rules shipped in T13 |
-| T20 | Graph canvas: layout, styles, highlight, citation linking | Sakib | 4 | T17 | Clicking a citation highlights the right path | in review (feat/t20-canvas) |
+| T20 | Graph canvas: layout, styles, highlight, citation linking | Sakib | 4 | T17 | Clicking a citation highlights the right path | done (PR merged) |
 | T21 | Executor: `package.json` edit, sandbox image, lockfile regeneration, Git Data API push, pull request | Shaukat | 4 | T14 | A real pull request on fork 1 | todo |
 | T22 | Verification re-ingest and the pull request description | Shaukat | 2 | T21 | The description shows correct closed counts | todo |
 | T23 | Finding drawer, waive with reason, approve and ship buttons | Sakib | 2.5 | T17 | Waive in the UI; a new run respects it | todo |
 | T24 | Eval: labels for 3 repositories, baseline tools, runner, results table | Both | 3 | T16 | `eval/results.md` generated | todo |
-| T25 | Deploy worker, web, and FalkorDB Cloud; pre-load demo repositories and runs | Sakib | 2 | T17 | Hosted smoke check passes | todo |
+| T25 | Deploy worker, web, and FalkorDB Cloud; pre-load demo repositories and runs | Sakib | 2 | T17 | Hosted smoke check passes | in review (chore/t25-deploy): image, fly.toml, and runbook ready; hosting needs the accounts |
 | T26 | Replay mode and compare page | Sakib | 1.5 | T20 | Replay plays a finished run with no model call | todo |
 | T27 | Fixer agent and "Hand to fixer" button (should) | Shaukat | 2 | T21 | A fresh session opens the pull request from graph state alone | todo |
 | T28 | Run the full demo script on the hosted build; bug list | Both | 1 | all | Day 3 exit met | todo |
