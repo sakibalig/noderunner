@@ -1,12 +1,23 @@
-import { Fault, findingKey, graphName, type IngestReport, type RepoRef, type Stage } from "@noderunner/core";
+import {
+  Fault,
+  findingKey,
+  graphName,
+  type IngestReport,
+  type RepoRef,
+  type RunEvent,
+  type Stage,
+  StepId,
+} from "@noderunner/core";
 import { describe, expect, it } from "vitest";
 import type { Catalog, Ingester } from "../jobs/catalog.ts";
 import { Limiter } from "../jobs/limit.ts";
 import { type DEFAULTS, Jobs } from "../jobs/queue.ts";
+import { type Archive, type Runner, Runs } from "../jobs/runs.ts";
 import type { Log } from "../log.ts";
 import { createApp } from "./app.ts";
 
 const TOKEN = "t".repeat(32);
+const STEP = StepId.parse("01JQZ8STEP00000000000000AA");
 const auth = { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" };
 const stages: readonly Stage[] = ["fetch", "lockfile", "imports", "advisories", "people", "prune"];
 const counts = { files: 6, installs: 12, vulns: 3, findings: 3, people: 1 };
@@ -27,6 +38,7 @@ function report(repo: RepoRef): IngestReport {
 }
 
 type Setup = {
+  run?: Runner;
   ingest?: Ingester;
   falkordb?: boolean;
   jobs?: Partial<typeof DEFAULTS>;
@@ -82,8 +94,41 @@ function setup(options: Setup = {}) {
   let next = 0;
   const clock = { now: () => 0 };
   const ids = { next: () => `01JQZ8${String(next++).padStart(20, "0")}` };
+  const stored = new Map<string, readonly RunEvent[]>();
+  const archive: Archive = {
+    begin: async () => {},
+    save: async (_graph, runId, events) => {
+      stored.set(runId, events);
+    },
+    find: async (runId) => stored.get(runId) ?? null,
+  };
+  const run: Runner =
+    options.run ??
+    (async ({ runId, emit }) => {
+      emit({ type: "run.started", runId, agent: "triage", model: "openai/gpt-5" });
+      emit({ type: "step.started", stepId: STEP, seq: 1, tool: "list_alerts", input: {} });
+      emit({ type: "message.delta", text: "partial" });
+      emit({
+        type: "step.finished",
+        stepId: STEP,
+        ok: true,
+        summary: "3 alerts",
+        evidence: { nodes: [], edges: [], cypher: ["MATCH"] },
+        ms: 40,
+      });
+      emit({
+        type: "run.finished",
+        runId,
+        status: "done",
+        unverified: false,
+        report: `3 alerts [s:${STEP}]`,
+      });
+    });
+  const runs = new Runs({ run, archive, model: "openai/gpt-5", clock, ids, log });
   const app = createApp({
     jobs: new Jobs({ ingest, clock, ids, log }, options.jobs),
+    runs,
+    archive,
     catalog,
     limiter: new Limiter({ limit: 3, windowMs: 3_600_000, clients: 100 }, clock),
     probe: { falkordb: async () => options.falkordb ?? true, model: true },
@@ -390,5 +435,104 @@ describe("GET /repos/:owner/:name/findings", () => {
     const app = await ingested();
     expect((await app.request("/repos/acme/api/findings?tier=bogus", { headers: auth })).status).toBe(400);
     expect((await app.request("/repos/acme/none/findings", { headers: auth })).status).toBe(404);
+  });
+});
+
+describe("runs", () => {
+  async function ready(options: Setup = {}) {
+    const { app } = setup(options);
+    const { jobId } = await start(app);
+    await stream(app, jobId);
+    return app;
+  }
+  const begin = async (
+    app: Awaited<ReturnType<typeof ready>>,
+    body: unknown = { repoId: "acme/api", agent: "triage" },
+  ) => app.request("/runs", post(body));
+  const runEvents = async (
+    app: Awaited<ReturnType<typeof ready>>,
+    runId: string,
+    query = "",
+    last?: string,
+  ) =>
+    events(
+      await (
+        await app.request(`/runs/${runId}/events${query}`, {
+          headers: last === undefined ? auth : { ...auth, "Last-Event-ID": last },
+        })
+      ).text(),
+    );
+
+  it("starts a triage run and streams it live to run.finished, text deltas included", async () => {
+    const app = await ready();
+    const res = await begin(app);
+    expect(res.status).toBe(202);
+    const { runId } = (await res.json()) as { runId: string };
+    expect((await runEvents(app, runId)).map((e) => e.type)).toEqual([
+      "run.started",
+      "step.started",
+      "message.delta",
+      "step.finished",
+      "run.finished",
+    ]);
+  });
+
+  it("resumes a live stream after Last-Event-ID", async () => {
+    const app = await ready();
+    const { runId } = (await (await begin(app)).json()) as { runId: string };
+    await runEvents(app, runId);
+    expect((await runEvents(app, runId, "", "3")).map((e) => e.id)).toEqual([4, 5]);
+  });
+
+  it("replays a finished run from the archive without text deltas, and serves its view", async () => {
+    const app = await ready();
+    const { runId } = (await (await begin(app)).json()) as { runId: string };
+    await runEvents(app, runId);
+    expect((await runEvents(app, runId, "?replay=1")).map((e) => e.type)).toEqual([
+      "run.started",
+      "step.started",
+      "step.finished",
+      "run.finished",
+    ]);
+    const view = (await (await app.request(`/runs/${runId}`, { headers: auth })).json()) as {
+      run: { status: string; model: string };
+      steps: { tool: string; summary: string; cypher: string[] }[];
+      report: string;
+    };
+    expect(view.run).toMatchObject({ status: "done", model: "openai/gpt-5" });
+    expect(view.steps).toEqual([
+      expect.objectContaining({ tool: "list_alerts", summary: "3 alerts", cypher: ["MATCH"] }),
+    ]);
+    expect(view.report).toBe(`3 alerts [s:${STEP}]`);
+  });
+
+  it("finishes a run whose runner throws with a failed run.finished and a safe message", async () => {
+    const app = await ready({
+      run: async () => {
+        throw new Error("model exploded at /secret");
+      },
+    });
+    const { runId } = (await (await begin(app)).json()) as { runId: string };
+    const seen = await runEvents(app, runId);
+    expect(seen.map((e) => e.type)).toEqual(["run.finished"]);
+    expect(JSON.parse(seen[0]?.data ?? "{}")).toMatchObject({ status: "failed", report: "The run failed" });
+    expect(seen[0]?.data).not.toContain("/secret");
+  });
+
+  it.each([
+    [{ repoId: "acme/none", agent: "triage" }, 404],
+    [{ repoId: "acme/api", agent: "fixer" }, 422],
+    [{ repoId: "nope", agent: "triage" }, 400],
+  ])("refuses %j with %i", async (body, status) => {
+    expect((await begin(await ready(), body)).status).toBe(status);
+  });
+
+  it("answers missing for an unknown run and invalid for a malformed id", async () => {
+    const app = await ready();
+    expect((await app.request("/runs/01JQZ8XXXXXXXXXXXXXXXXXXXX", { headers: auth })).status).toBe(404);
+    expect((await app.request("/runs/01JQZ8XXXXXXXXXXXXXXXXXXXX/events", { headers: auth })).status).toBe(
+      404,
+    );
+    expect((await app.request("/runs/bad/events", { headers: auth })).status).toBe(400);
   });
 });

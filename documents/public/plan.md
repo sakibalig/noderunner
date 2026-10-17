@@ -87,8 +87,8 @@ Exit: one real repository in the graph, golden queries G1 to G5 correct.
 | T06 | Ingest stage 3: imports, resolution, classification, `LOADS` | Shaukat | 3 | T04 | Syntax-form tests pass; G4 correct | done (PR merged); G4 equals a text search on `nestjs/nest` for `rxjs` (121 files) and `reflect-metadata` (6) |
 | T07 | Ingest stage 4: OSV, advisory cache, `isAffected`, Findings | Shaukat | 2.5 | T05 | G2 matches `npm audit` within explained differences | done (PR merged); cache deferred; G2 and `npm audit` agree on all 56 advisories of `nestjs/nest` |
 | T08 | Ingest stage 5: CODEOWNERS and git history | Sakib | 2 | T03 | G5 correct on demo repository 1 | done (PR merged) |
-| T09 | Worker: Hono, `/healthz`, `POST /repos` with job queue and job SSE, `GET /repos`, `summary` | Sakib | 3 | T02 | Ingest triggered over HTTP with live progress | in review (feat/t09-worker) |
-| T10 | Web shell: home, repository page, funnel and alert table on fixture data | Sakib | 3 | T02 | Pages render from fixtures | in review (feat/t10-web) |
+| T09 | Worker: Hono, `/healthz`, `POST /repos` with job queue and job SSE, `GET /repos`, `summary` | Sakib | 3 | T02 | Ingest triggered over HTTP with live progress | done (PR merged) |
+| T10 | Web shell: home, repository page, funnel and alert table on fixture data | Sakib | 3 | T02 | Pages render from fixtures | done (PR merged) |
 | T11 | Golden queries G1 to G5 checked by hand | Shaukat | 1 | T05–T07 | Day 1 exit met | todo |
 
 ### Fri Oct 16 — Day 2, the agent works from the command line
@@ -100,8 +100,8 @@ Exit: a CLI run on demo repository 1 gives a correct plan with citations and a s
 | T12 | `callTool`, Step writes, `reachability` with the tier query | Shaukat | 3 | T11 | Tier counts on mini-repo and demo repository 1 match labels | done (PR merged); mini-repo tiers exact; demo repository 1 waits on D6 and labels on T24; on `nestjs/nest` 12 reachable, 44 dev-only, three chains checked by hand |
 | T13 | Remaining read tools and `record_decision`, `read_only_cypher` | Shaukat | 4 | T12 | Snapshot tests pass | done (PR merged); five tools built and tested on mini-repo and `nestjs/nest`; `owners_for` moves to T14, `rank_packages` deferred |
 | T14 | Planner with registry client and cache; `plan_upgrades` | Shaukat | 5 | T12 | Unit cases pass; plan on demo repository 1 checked by hand | done (PR merged); with `owners_for`; on `nestjs/nest` 4 upgrades close 12 findings at cost 7, checked by hand |
-| T15 | Run endpoints: `POST /runs`, run SSE with replay, `GET /runs/:id`, `subgraph`, `approve`, `ship`, `decisions` | Sakib | 2.5 | T09 | curl can start a run and stream it | todo |
-| T16 | Agent loop, triage system prompt, step cap, report validator | Shaukat (taken over from Sakib, agreed) | 5 | T02, then T12 | Day 2 exit met | in review (feat/t16-agent); verified with a recorded model; a live OpenAI run is pending a key |
+| T15 | Run endpoints: `POST /runs`, run SSE with replay, `GET /runs/:id`, `subgraph`, `approve`, `ship`, `decisions` | Sakib | 2.5 | T09 | curl can start a run and stream it | in review (feat/t15-runs): POST /runs, GET /runs/:id, run events live, resumed, and replayed; plan approve and ship move to T23 with the executor |
+| T16 | Agent loop, triage system prompt, step cap, report validator | Shaukat (taken over from Sakib, agreed) | 5 | T02, then T12 | Day 2 exit met | done (PR merged; live OpenAI run pending a key) |
 | T17 | Run view: reducer, step timeline, report panel with citations, live SSE | Sakib | 3.5 | T15 | A live run renders end to end | todo |
 | T18 | MCP server, stdio and HTTP, read-only by default | Sakib | 1.5 | T13 | An MCP client answers "which alerts are reachable" through it | todo |
 
