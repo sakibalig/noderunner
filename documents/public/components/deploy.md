@@ -1,5 +1,8 @@
 # Deployment and configuration
 
+> **As built (D14):** the demo runs locally only; see the [runbook](../runbook/deploy.md). The hosted parts of
+> this design (FalkorDB Cloud, Fly.io, Vercel) were not built.
+
 How Noderunner is configured, run locally, and hosted for judging, and how the demo is protected on the day. Its
 single responsibility is that the three-minute demo script below runs on the hosted build from `main`, and that a
 failure of the model, the network, or GitHub during judging degrades to a replay instead of a broken screen. This is

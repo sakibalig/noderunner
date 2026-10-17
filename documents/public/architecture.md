@@ -248,7 +248,11 @@ and the agent and UI half both build against them with mock data until the real 
 
 ## 11. Deployment
 
-| Piece | Local | Hosted |
+**As built (D14): the demo runs locally only**, on one machine, as in the
+[runbook](runbook/deploy.md); the hosted column below is the original design and was not built. The sandbox is npm as
+a child process in a temporary folder holding only package manifests and the lockfile.
+
+| Piece | Local | Hosted (not built) |
 | --- | --- | --- |
 | Web UI | `next dev` | Vercel, deploying from `main` only |
 | Worker | `tsx watch` | One 2 GB container on Fly.io or Railway, so runs are not cut off by function time limits |

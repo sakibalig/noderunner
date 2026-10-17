@@ -1,55 +1,65 @@
-# Deploying the hosted demo
+# Running Noderunner locally
 
-The checklist for T25. Three pieces: FalkorDB Cloud for the graph, the worker on Fly.io, and the web app on Vercel.
-Everything that needs no account is already in the repository: `docker/worker.Dockerfile`, `fly.toml`, and the web
-app's Vercel settings below. Secrets go only into each host's secret store, never into a file in the repository.
+The demo runs on one machine: FalkorDB in Docker, the worker, and the web app. There is no hosted build (D14, local
+hosting). Secrets live only in `.env`, which git ignores; never paste them anywhere else.
 
-## 1. FalkorDB Cloud
-
-1. Create a free instance at <https://app.falkordb.cloud>.
-2. Copy its connection URL as `rediss://default:<password>@<host>:<port>`. This is `FALKORDB_URL`.
-3. Check it from a laptop: `FALKORDB_URL=… pnpm triage nestjs/nest` ingests and prints the triage.
-
-## 2. Worker on Fly.io
+## 1. Configure
 
 ```sh
-brew install flyctl && fly auth login
-fly launch --no-deploy --copy-config          # keeps fly.toml; pick a unique app name if taken
-fly secrets set \
-  FALKORDB_URL='rediss://…' \
-  OPENAI_API_KEY='sk-…' \
-  GITHUB_TOKEN='github_pat_…' \
-  PR_TARGET_OWNER='sakibalig' \
-  WORKER_TOKEN="$(openssl rand -hex 32)" \
-  WEB_ORIGIN='https://<vercel-domain>'
-fly deploy
-curl https://<app>.fly.dev/healthz              # {"ok":true,"falkordb":true,"model":true}
+cp .env.example .env
 ```
 
-Keep the `WORKER_TOKEN` value: the web app needs the same one. `GITHUB_TOKEN` is a fine-grained token with read
-access to public repositories (and, for T21, contents and pull-request write on the demo forks only). Without a valid
-token GitHub answers 401 and ingestion ends with `upstream`.
+Fill in:
 
-## 3. Web on Vercel
+| Variable | Value |
+| --- | --- |
+| `OPENAI_API_KEY` | An OpenAI key with access to `gpt-5` (`LLM_MODEL` empty means `gpt-5`) |
+| `GITHUB_TOKEN` | A fine-grained token: read access to public repositories, plus Contents and Pull requests write on the demo fork only |
+| `PR_TARGET_OWNER` | The owner of the demo fork, `sakibalig`; a pull request never goes anywhere else |
+| `WORKER_TOKEN` | Any 32 or more characters, such as `openssl rand -hex 32`; the web app and the worker share it |
 
-1. Import the GitHub repository. Set **Root Directory** to `apps/web`; Vercel detects Next.js and pnpm.
-2. Environment variables: `WORKER_URL=https://<app>.fly.dev` and `WORKER_TOKEN=<the same value>`.
-3. Deploy, then set the worker's `WEB_ORIGIN` to the Vercel domain (`fly secrets set WEB_ORIGIN=…`).
+The defaults for `FALKORDB_URL`, `PORT` (8787), `WEB_ORIGIN` (http://localhost:3001), and `WORKER_URL` fit this setup.
 
-Vercel builds every push to `main`, so merge at checkpoints.
+To open a real pull request, fork the demo repository first: `nestjs/nest` becomes `sakibalig/nest`. The fork must
+contain the commit the graph was ingested at; a fresh fork does, and an old one may need syncing on GitHub.
 
-## 4. Pre-load and smoke check
+## 2. Start
 
-1. On the hosted site, ingest `nestjs/nest` (the stand-in demo repository until D6 is decided).
-2. Start one triage run and let it finish; its run page is the replay fallback (`?replay=1`, no model call).
-3. Smoke check before recording and before judging: `/healthz`, the repository page's funnel, one live run, one
-   replay, and the graph highlight on a citation, in a private window.
+```sh
+pnpm install
+docker compose up -d falkordb
+set -a; . ./.env; set +a
+pnpm --filter @noderunner/worker start          # terminal 1: the worker on :8787
+pnpm --filter @noderunner/web dev               # terminal 2: the web app on :3001
+curl localhost:8787/healthz                     # {"ok":true,"falkordb":true,"model":true}
+```
+
+If port 6379 is taken by a local Redis (`brew services stop redis`), FalkorDB cannot start and every graph call fails.
+
+## 3. Pre-load for the demo
+
+1. Open http://localhost:3001, paste `https://github.com/nestjs/nest`, and ingest (about 15 seconds).
+2. On the repository page, press **Run triage agent** and let one run finish (about a minute). Keep its page open in a
+   second tab as the fallback.
+3. Approve the plan on that run's page. Do not press **Open pull request** until recording, because a plan ships once.
+4. Smoke check: `/healthz`, the funnel, a finding's drawer, one live run, a citation lighting up the graph.
+
+## 4. Evaluation
+
+```sh
+pnpm eval run --runs 3      # about 10 minutes and a few dollars of model use; rewrites eval/results.*
+pnpm eval table             # re-renders results.md from results.json, no model call
+```
+
+The runner refuses a FalkorDB that is not local and a graph holding a waiver in force.
 
 ## If something fails on the day
 
 | Symptom | Do this |
 | --- | --- |
-| `healthz` shows `falkordb: false` | Check the FalkorDB Cloud instance is running; `fly secrets set FALKORDB_URL=…` |
-| A run fails with `upstream` from the model | Open the pre-loaded run with `?replay=1`; set a cheaper `LLM_MODEL` if rate-limited |
-| Ingestion fails with `upstream` | GitHub refused the token; renew `GITHUB_TOKEN` |
-| The web app shows 502 | The worker is down: `fly status`, `fly logs`, `fly machine restart` |
+| `healthz` shows `falkordb: false` | `docker compose up -d falkordb`; check nothing else holds port 6379 |
+| A run fails with `upstream` from the model | Show the finished run from step 3; check the OpenAI key and quota |
+| Ingestion fails with `upstream` | GitHub refused the token: renew `GITHUB_TOKEN` and restart the worker |
+| **Open pull request** says the fork does not exist | Fork the repository to `PR_TARGET_OWNER` and give the token write access to it |
+| **Open pull request** says to sync the fork | The fork lacks the ingested commit: sync it on GitHub, then retry |
+| The web app shows a server error after a code change | Restart `pnpm --filter @noderunner/web dev`; the dev server can hold a stale module |

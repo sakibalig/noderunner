@@ -31,14 +31,20 @@ PLAN  3 upgrades, cost 6, closes 10 of 10
 
 ## Status
 
-| Works today, tested on real repositories | In progress |
+Everything below runs locally and was tested on `nestjs/nest`.
+
+| Part | What it does |
 | --- | --- |
-| Ingestion of any public npm repository: files, imports, the resolved dependency tree, OSV advisories, CODEOWNERS and git history | The model-driven agent loop and its cited report (`apps/worker`) |
-| Eight graph tools behind one `callTool` that records every call as a Step: `list_alerts`, `reachability`, `introduced_by`, `plan_upgrades`, `owners_for`, `record_decision`, `recall_decisions`, `read_only_cypher` | The run view with the graph canvas (`apps/web`) |
-| The upgrade planner: refresh, bump, and override, chosen by weighted set cover | The MCP server (`packages/mcp`) |
-| Memory: decisions that persist across runs and are flagged when they go stale | Opening and verifying the pull request (`packages/executor`) |
-| `pnpm triage`: the whole triage from the command line, no model needed | `rank_packages` (PageRank), the evaluation, hosting |
-| The worker API and web shell: ingest a repository and see its funnel and alerts | |
+| Ingestion | Any public npm repository: files, imports, the resolved dependency tree, OSV advisories, CODEOWNERS and git history |
+| Tools | `list_alerts`, `reachability`, `introduced_by`, `plan_upgrades`, `owners_for`, `record_decision`, `recall_decisions`, `read_only_cypher`, `open_pull_request`, each call stored as a `Step` |
+| Planner | Refresh, bump, and override, chosen by weighted set cover |
+| Agent | A gpt-5 triage agent that picks its own tools and writes a report where every sentence cites the step behind it; the report is checked against the tool results before it is shown |
+| Web app | Ingest a repository, see its funnel and alerts, open a finding's path and waive it, watch a run stream with the graph lighting up per citation, approve the plan, and open the pull request |
+| Pull request | Edits `package.json`, regenerates the lockfile with npm (no scripts, no repository code), re-ingests and re-tiers it, refuses a change that makes a new alert reachable, then pushes to the fork |
+| Memory | Waivers carry over to the next run and are flagged, and reopened, when they go stale |
+| Evaluation | `pnpm eval`: the graph agent against a files-only baseline, scored against hand-checked labels |
+
+Not built: the MCP server and the replay compare page.
 
 ---
 
@@ -70,6 +76,26 @@ traversal, so Noderunner does it in the graph, with one query, instead of guessi
 
 ## Results
 
+### Graph agent against a files-only baseline
+
+From [eval/results.md](eval/results.md): `nestjs/nest` @ `c215fd9`, gpt-5, three runs each through the same agent
+loop, the same 15-call cap, and the same report format. The baseline gets the alert list (without the graph's tiers)
+and searches the source files, every `package.json`, and the lockfile.
+
+| Agent | Precision | Recall | Tool calls | Time |
+| --- | --- | --- | --- | --- |
+| Graph agent | 100% | 83% (3 of 3 runs) | 9–11 | ~51 s |
+| Baseline, files only | 100% (2 of 3 runs) | 25% (0–25%) | 15, capped every run | ~85 s |
+
+The baseline finds packages that production code imports directly. It misses the seven `brace-expansion` alerts,
+which reach production only through `@fastify/static` → `glob` → `minimatch`: a dependency walk, not a text search.
+The graph agent's misses are honest too: an independent check, written outside Noderunner, found two `protobufjs`
+alerts loaded through `createRequire(import.meta.url)('@grpc/grpc-js')`, which our import parser does not resolve.
+The labels, their corrections, and the limits are in [eval/results.md](eval/results.md).
+
+### Triage of `nestjs/nest`
+
+
 **On `nestjs/nest` @ `c215fd9`** (2,149 source files, 1,638 installs):
 
 - **The same advisories as `npm audit`, at the right versions.** Both find the same 56 advisories, none missing on
@@ -100,7 +126,9 @@ flowchart LR
     ingest --> db[("FalkorDB: one graph per repository")]
     db --> tools["Typed tools via callTool"]
     tools --> cli["pnpm triage"]
-    tools --> agent["Agent loop (in progress)"]
+    tools --> agent["gpt-5 agent loop"]
+    agent --> web["Web app: run view, graph canvas, waive, approve"]
+    web --> pr["Verified pull request on the fork"]
     tools -->|"runs, steps, decisions, plans"| db
 ```
 
@@ -165,19 +193,20 @@ Found in our first spike and while building; each is handled in `packages/graph`
 
 ## Quickstart
 
-Needs Node 22, pnpm, and Docker. No API keys.
+Needs Node 22 or later, pnpm, and Docker. The command-line triage needs no API key:
 
 ```bash
 pnpm install
-docker run -d -p 6379:6379 -p 3000:3000 falkordb/falkordb   # FalkorDB, with its Browser on port 3000
+docker compose up -d falkordb          # FalkorDB on 6379, its Browser on http://localhost:3000
 FALKORDB_URL=redis://localhost:6379 pnpm triage nestjs/nest
 ```
 
-Any public npm repository with a `package-lock.json` (version 2 or 3) works. Set `GITHUB_TOKEN` to raise GitHub's rate
-limit. Open the FalkorDB Browser at http://localhost:3000 and select the `repo:nestjs/nest` graph to explore it.
+Any public npm repository with a `package-lock.json` (version 2 or 3) works. Open the FalkorDB Browser and select the
+`repo:nestjs/nest` graph to explore it.
 
-The worker and web shell (`apps/worker`, `apps/web`) also ingest a repository and show its funnel and alerts; they
-need the variables in [.env.example](.env.example).
+The agent, the web app, and the pull request need the variables in [.env.example](.env.example) (an OpenAI key, a
+GitHub token, and a worker token); the full local setup is in the
+[runbook](documents/public/runbook/deploy.md).
 
 ---
 
@@ -188,7 +217,7 @@ pnpm check     # Biome lint and format, tsc --noEmit across the workspace
 pnpm test      # Vitest; integration tests need FalkorDB and FALKORDB_URL
 ```
 
-409 tests, most against a real FalkorDB. GitHub, OSV, and npm are replaced by recorded responses in `fixtures/`.
+About 590 tests, most against a real FalkorDB. GitHub, OSV, and npm are replaced by recorded responses in `fixtures/`.
 
 | Document | What it covers |
 | --- | --- |
@@ -208,8 +237,9 @@ packages/
   ingest/       the six ingestion stages and their adapters
   tools/        the typed tools and callTool
   planner/      upgrade candidates, the set cover, the npm registry adapter
-  executor/     the pull request (in progress)
-  mcp/          the MCP server (in progress)
+  executor/     the pull request: package.json edit, npm sandbox, verification, GitHub push
+  mcp/          the MCP server (not built)
+eval/           labels, the runner, and results.md
 fixtures/       the mini repository, lockfiles, and recorded OSV and npm responses
 ```
 
