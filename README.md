@@ -7,6 +7,9 @@ the ones that matter. Every claim comes with the graph path behind it.**
 Built by Team Noderunner (Shaukat Ali, Sakib Khan) for Graph Hacks by WeMakeDevs and FalkorDB, Track 1: Agents That
 Act on Connected Data, Oct 15–18, 2026.
 
+**Interactive walkthrough:** <https://sakibalig.github.io/noderunner/>, a click-through of the whole flow on a real
+run of `nestjs/nest` (source: [docs/index.html](docs/index.html), no backend).
+
 ```text
 $ pnpm triage nestjs/nest
 
