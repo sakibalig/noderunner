@@ -37,6 +37,7 @@ function github(answers: Record<string, Answer>) {
 const repo = "/repos/sakibalig/nest";
 const happy: Record<string, Answer> = {
   [`GET ${repo}`]: { status: 200, body: { default_branch: "master" } },
+  [`GET ${repo}/git/ref/heads/master`]: { status: 200, body: { object: { sha: base } } },
   [`GET ${repo}/git/commits/${base}`]: { status: 200, body: { tree: { sha: "tree0" } } },
   [`POST ${repo}/git/blobs`]: { status: 201, body: { sha: "blob" } },
   [`POST ${repo}/git/trees`]: { status: 201, body: { sha: "tree1" } },
@@ -57,6 +58,7 @@ describe("GitData.propose", () => {
     });
     expect(calls.map((c) => c.key)).toEqual([
       `GET ${repo}`,
+      `GET ${repo}/git/ref/heads/master`,
       `GET ${repo}/git/commits/${base}`,
       `POST ${repo}/git/blobs`,
       `POST ${repo}/git/blobs`,
@@ -65,9 +67,33 @@ describe("GitData.propose", () => {
       `POST ${repo}/git/refs`,
       `POST ${repo}/pulls`,
     ]);
-    expect(calls[4]?.body).toMatchObject({ base_tree: "tree0" });
-    expect(calls[5]?.body).toEqual({ message: "m", tree: "tree1", parents: [base] });
-    expect(calls[7]?.body).toEqual({ title: "t", body: "b", head: "noderunner/plan-abc", base: "master" });
+    expect(calls[5]?.body).toMatchObject({ base_tree: "tree0" });
+    expect(calls[6]?.body).toEqual({ message: "m", tree: "tree1", parents: [base] });
+    expect(calls[8]?.body).toEqual({ title: "t", body: "b", head: "noderunner/plan-abc", base: "master" });
+  });
+
+  const tip = "d".repeat(40);
+  const ahead = (files: string[]): Record<string, Answer> => ({
+    ...happy,
+    [`GET ${repo}/git/ref/heads/master`]: { status: 200, body: { object: { sha: tip } } },
+    [`GET ${repo}/compare/${base}...${tip}`]: {
+      status: 200,
+      body: { status: "ahead", files: files.map((filename) => ({ filename })) },
+    },
+    [`GET ${repo}/git/commits/${tip}`]: { status: 200, body: { tree: { sha: "treeTip" } } },
+  });
+
+  it("builds on the fork's newer default branch when the change's files are the same there", async () => {
+    const { calls, forge } = github(ahead([".github/workflows/codeql-analysis.yml", "packages/core/x.ts"]));
+    await forge.propose(fork, change, never);
+    expect(calls.find((c) => c.key.endsWith("/git/trees"))?.body).toMatchObject({ base_tree: "treeTip" });
+    expect(calls.find((c) => c.key.endsWith("/git/commits"))?.body).toMatchObject({ parents: [tip] });
+  });
+
+  it("stays on the ingested commit when the default branch changed one of the change's files", async () => {
+    const { calls, forge } = github(ahead(["package.json"]));
+    await forge.propose(fork, change, never);
+    expect(calls.find((c) => c.key.endsWith("/git/commits"))?.body).toMatchObject({ parents: [base] });
   });
 
   it("moves an existing branch and reuses an open pull request", async () => {
