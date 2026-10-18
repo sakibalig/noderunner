@@ -71,6 +71,11 @@ export function draft(g: G, repoId: string, planId: string, signal: AbortSignal,
 `Sandbox.regenerate` also receives `workspaces`, the `package.json` of each workspace the lockfile lists. The
 separate `verify` entry point for the evaluation is not built; T24 does not need it.
 
+**As built:** `GitData.propose` builds on the fork's default branch instead of `change.base` when GitHub's compare
+shows none of the change's files differ between them, so the pull request carries only its two files and does not
+appear to revert later commits; GitHub refuses a branch that differs in workflow files to a token without the
+Workflows permission. When either file changed, it builds on `change.base` as below.
+
 `Forge.propose` hides the Git Data API: it creates the two blobs, a tree on `change.base`, a commit whose only
 parent is `change.base`, and `refs/heads/<branch>` (moving the ref when it already exists), then opens the pull
 request from `branch` into the fork's default branch with `change.title` and `change.body`. There is no logger in

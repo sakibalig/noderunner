@@ -9,6 +9,10 @@ const Sha1 = z.object({ sha: z.string() });
 const Commit = z.object({ tree: Sha1 });
 const About = z.object({ default_branch: z.string() });
 const Pull = z.object({ html_url: z.url(), number: z.number().int() });
+const Ref = z.object({ object: z.object({ sha: z.string() }) });
+const Compare = z.object({ status: z.string(), files: z.array(z.object({ filename: z.string() })) });
+/** GitHub's compare API lists at most this many files; a full list may be cut, so it is not trusted. */
+const COMPARE_FILES = 300;
 
 /** `Forge.read` and `Forge.propose` over the GitHub contents and Git Data APIs; the token is never logged. */
 export class GitData implements Pick<Forge, "read" | "propose"> {
@@ -53,7 +57,8 @@ export class GitData implements Pick<Forge, "read" | "propose"> {
         `${repo.owner}/${repo.name} does not exist; fork the repository first`,
       );
     const { default_branch } = About.parse(await json(about, "read"));
-    const head = await this.#call("GET", `${base}/git/commits/${change.base}`, undefined, signal);
+    const parent = await this.#parent(base, default_branch, change, signal);
+    const head = await this.#call("GET", `${base}/git/commits/${parent}`, undefined, signal);
     if (head.status === 404 || head.status === 422)
       throw new ExecutorError(
         "executor.missing",
@@ -77,7 +82,7 @@ export class GitData implements Pick<Forge, "read" | "propose"> {
       await this.#json(
         "POST",
         `${base}/git/commits`,
-        { message: change.message, tree: made.sha, parents: [change.base] },
+        { message: change.message, tree: made.sha, parents: [parent] },
         signal,
       ),
     );
@@ -119,6 +124,30 @@ export class GitData implements Pick<Forge, "read" | "propose"> {
     }
     const opened = Pull.parse(await json(pull, "pull request"));
     return { url: opened.html_url, number: opened.number };
+  }
+
+  /**
+   * The commit the change is built on: the fork's default branch when none of the change's files differ there from
+   * `change.base`, so the pull request carries only its own files and does not appear to revert later commits (GitHub
+   * refuses a token without the Workflows permission a branch that differs in workflow files); else `change.base`.
+   */
+  async #parent(base: string, branch: string, change: Change, signal: AbortSignal): Promise<string> {
+    const ref = await this.#call("GET", `${base}/git/ref/heads/${branch}`, undefined, signal);
+    if (!ref.ok) return change.base;
+    const tip = Ref.safeParse(await ref.json());
+    if (!tip.success || tip.data.object.sha === change.base) return change.base;
+    const compared = await this.#call(
+      "GET",
+      `${base}/compare/${change.base}...${tip.data.object.sha}`,
+      undefined,
+      signal,
+    );
+    if (!compared.ok) return change.base;
+    const diff = Compare.safeParse(await compared.json());
+    if (!diff.success || diff.data.status !== "ahead" || diff.data.files.length >= COMPARE_FILES)
+      return change.base;
+    const touched = new Set(diff.data.files.map((f) => f.filename));
+    return change.files.some((f) => touched.has(f.path)) ? change.base : tip.data.object.sha;
   }
 
   async #json(method: string, path: string, body: unknown, signal: AbortSignal): Promise<unknown> {
