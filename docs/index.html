@@ -1,0 +1,699 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Noderunner — a graph path behind every claim</title>
+<meta name="description" content="An interactive walkthrough of Noderunner: dependency vulnerability triage on a FalkorDB graph. Graph Hacks 2026, Track 1.">
+<style>
+:root {
+  --bg: #f6f4ee; --surface: #fff; --ink: #1c1b18; --muted: #6b6860; --line: #e2ded3;
+  --accent: #b4451f; --accent-soft: #f5e1d7; --reach: #b4451f; --dev: #b9b5a8; --ok: #2f6f4f; --ok-soft: #dcefe4;
+  --high: #b4451f; --moderate: #c48a1c; --critical: #8f1d1d; --low: #5b7a99; --step: #3d5a80;
+  --mono: ui-monospace, SFMono-Regular, Menlo, monospace; --radius: 12px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+a { color: var(--accent); }
+code, .mono { font-family: var(--mono); font-size: 0.92em; }
+
+header.top { display: flex; align-items: center; gap: 18px; padding: 12px 24px; border-bottom: 1px solid var(--line); background: var(--surface); }
+header.top .brand { font-weight: 700; font-size: 17px; }
+header.top .tag { color: var(--muted); font-size: 13px; }
+.dots { display: flex; gap: 6px; margin-left: auto; }
+.dots button { width: 10px; height: 10px; border-radius: 50%; border: 0; padding: 0; background: var(--line); cursor: pointer; }
+.dots button.done { background: #d9b8a8; }
+.dots button.on { background: var(--accent); transform: scale(1.3); }
+.count { color: var(--muted); font-size: 13px; min-width: 52px; text-align: right; }
+
+main { display: grid; grid-template-columns: 380px 1fr; gap: 20px; padding: 20px 24px; height: calc(100% - 55px); }
+.story { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; display: flex; flex-direction: column; overflow-y: auto; }
+.kicker { color: var(--accent); font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.story h1 { font-size: 24px; line-height: 1.25; margin: 6px 0 14px; }
+.story p { margin: 0 0 12px; }
+.story .note { color: var(--muted); font-size: 13px; }
+.story ul { padding-left: 18px; margin: 0 0 12px; }
+.story li { margin-bottom: 6px; }
+.actions { margin-top: auto; padding-top: 16px; display: flex; gap: 10px; align-items: center; }
+button.primary { background: var(--ink); color: #fff; border: 0; border-radius: 10px; padding: 12px 18px; font: inherit; font-weight: 600; cursor: pointer; }
+button.primary:hover { background: #000; }
+button.primary.next { background: var(--accent); }
+button.primary:disabled { opacity: 0.45; cursor: progress; }
+button.ghost { background: none; border: 1px solid var(--line); border-radius: 10px; padding: 11px 14px; font: inherit; color: var(--muted); cursor: pointer; }
+.hint { color: var(--muted); font-size: 12px; margin-left: auto; }
+
+.stage { position: relative; display: grid; grid-template-rows: 1fr auto; gap: 14px; min-height: 0; }
+.canvas { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); position: relative; overflow: hidden; min-height: 0; }
+.canvas .label { position: absolute; top: 12px; left: 16px; font-size: 12px; color: var(--muted); font-family: var(--mono); z-index: 2; }
+.canvas .badge { position: absolute; top: 10px; right: 14px; font-size: 12px; z-index: 2; background: var(--bg); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; color: var(--muted); }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 18px; overflow-y: auto; max-height: 36vh; }
+.panel:empty { display: none; }
+.view { position: absolute; inset: 0; padding: 44px 24px 20px; overflow-y: auto; display: none; }
+.view.on { display: block; }
+svg.graph { width: 100%; height: 100%; display: none; }
+svg.graph.on { display: block; }
+
+/* graph */
+.node rect { fill: #fff; stroke: var(--line); stroke-width: 1.5; rx: 8; transition: all .35s; }
+.node text { font: 11px var(--mono); fill: var(--ink); transition: opacity .35s; pointer-events: none; }
+.node .sub { fill: var(--muted); font-size: 9.5px; }
+.node.file rect { fill: #eef2f7; stroke: #9fb0c6; }
+.node.vuln rect { fill: #fbeae4; stroke: #e2a68f; }
+.node.dec rect { fill: #fff6dc; stroke: var(--moderate); }
+.node.step rect { fill: #e7edf5; stroke: var(--step); }
+.node.dev rect { fill: #f4f3ef; stroke: #d6d2c6; }
+.node, .edge { opacity: 0; transition: opacity .45s; }
+.shown { opacity: 1 !important; }
+.shown.dim { opacity: 0.18 !important; }
+.node.hot rect { stroke: var(--reach); stroke-width: 3; fill: #fff3ee; }
+.node.vuln.hot rect { fill: var(--reach); }
+.node.vuln.hot text { fill: #fff; }
+.node.fixed rect { stroke: var(--ok); stroke-width: 3; fill: var(--ok-soft); }
+.node.pulse rect { animation: pulse 1s ease-in-out 2; }
+@keyframes pulse { 50% { stroke-width: 6; } }
+.edge path { fill: none; stroke: #cfcabd; stroke-width: 1.6; transition: stroke .35s, stroke-width .35s; }
+.edge text { font: 9px var(--mono); fill: var(--muted); }
+.edge.hot path { stroke: var(--reach); stroke-width: 3.2; }
+.edge.missed path { stroke: var(--moderate); stroke-dasharray: 5 4; stroke-width: 2.4; }
+.edge.memo path { stroke: var(--moderate); stroke-dasharray: 3 3; }
+.edge.touch path { stroke: var(--step); stroke-dasharray: 2 3; }
+
+/* panels */
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); }
+th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+.pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; color: #fff; }
+.pill.critical { background: var(--critical); } .pill.high { background: var(--high); } .pill.moderate { background: var(--moderate); } .pill.low { background: var(--low); }
+.audit { font: 12px/1.5 var(--mono); background: #1c1b18; color: #e8e4d8; border-radius: 10px; padding: 14px 16px; height: 100%; overflow: hidden; position: relative; }
+.audit .scroll { animation: scroll 22s linear infinite; }
+@keyframes scroll { to { transform: translateY(-50%); } }
+.audit .sev-critical { color: #ff8a80; } .audit .sev-high { color: #ffab91; } .audit .sev-moderate { color: #ffd180; } .audit .sev-low { color: #9fc3e6; }
+.big { font-size: 64px; font-weight: 800; line-height: 1; color: var(--accent); }
+.stat-row { display: flex; gap: 14px; flex-wrap: wrap; }
+.stat { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; min-width: 120px; }
+.stat b { display: block; font-size: 22px; }
+.stat span { color: var(--muted); font-size: 12px; }
+.stages { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.stages li { display: grid; grid-template-columns: 22px 110px 1fr; gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; color: var(--muted); transition: all .3s; }
+.stages li .tick { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--line); }
+.stages li.done { color: var(--ink); border-color: #cfe3d6; background: #f6fbf7; }
+.stages li.done .tick { background: var(--ok); border-color: var(--ok); }
+.stages li b { font-family: var(--mono); font-size: 13px; }
+.urlbox { display: flex; gap: 8px; margin-bottom: 14px; }
+.urlbox div { flex: 1; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-family: var(--mono); background: var(--bg); }
+pre.cypher { font: 12px/1.55 var(--mono); background: #1c1b18; color: #e8e4d8; padding: 12px 14px; border-radius: 10px; margin: 0 0 10px; white-space: pre-wrap; }
+pre.cypher .k { color: #ffab91; } pre.cypher .c { color: #8f8a7d; }
+.funnel { display: grid; gap: 8px; }
+.funnel .row { display: grid; grid-template-columns: 170px 1fr 40px; gap: 10px; align-items: center; font-size: 13px; }
+.funnel .bar { height: 14px; border-radius: 6px; background: var(--bg); overflow: hidden; }
+.funnel .bar i { display: block; height: 100%; width: 0; border-radius: 6px; transition: width 1s ease; }
+.funnel b { text-align: right; }
+.chain { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-family: var(--mono); font-size: 12px; }
+.chain span { padding: 4px 8px; border-radius: 8px; background: var(--bg); border: 1px solid var(--line); opacity: .25; transition: all .3s; }
+.chain span.on { opacity: 1; border-color: var(--reach); background: #fff3ee; }
+.chain em { color: var(--muted); font-style: normal; opacity: .25; } .chain em.on { opacity: 1; }
+.steps { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 4px; }
+.steps li { display: grid; grid-template-columns: 18px 130px 1fr 50px; gap: 8px; font-size: 12px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; opacity: 0; transform: translateY(6px); transition: all .3s; }
+.steps li.in { opacity: 1; transform: none; }
+.steps li.sel { border-color: var(--reach); background: #fff3ee; }
+.steps li .n { color: var(--muted); font-weight: 700; }
+.steps li code { font-weight: 600; }
+.steps li .ms { color: var(--muted); text-align: right; }
+.report { font-size: 13.5px; }
+.report:empty { display: none; }
+.cite { display: inline-block; min-width: 18px; padding: 0 5px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 11px; font-weight: 700; text-align: center; border: 0; cursor: pointer; }
+.cite.go { background: var(--accent); color: #fff; animation: pulse2 1s ease-in-out infinite; }
+@keyframes pulse2 { 50% { box-shadow: 0 0 0 5px var(--accent-soft); } }
+.typed { white-space: pre-wrap; }
+.pipeline { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.pipeline li { padding: 7px 10px; border: 1px solid var(--line); border-radius: 10px; opacity: .35; transition: all .3s; font-size: 13px; }
+.pipeline li.on { opacity: 1; border-color: var(--ok); background: #f6fbf7; }
+.pipeline li.stop { opacity: 1; border-color: var(--reach); background: #fff3ee; }
+.pipeline li b { display: block; }
+.diff { font: 12px/1.5 var(--mono); background: var(--bg); border-radius: 8px; padding: 8px 10px; margin-top: 6px; }
+.diff .add { color: var(--ok); }
+.bars { display: grid; gap: 14px; }
+.bars .row { display: grid; grid-template-columns: 200px 1fr 54px; gap: 12px; align-items: center; }
+.bars .bar { height: 26px; background: var(--bg); border-radius: 8px; overflow: hidden; }
+.bars .bar i { display: block; height: 100%; width: 0; transition: width 1.2s ease; border-radius: 8px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.cards h3.span { grid-column: 1 / -1; margin: 6px 0 0; font-size: 14px; color: var(--accent); }
+.card { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; background: var(--surface); opacity: 0; transform: translateY(8px); transition: all .35s; }
+.card.in { opacity: 1; transform: none; }
+.card b { display: block; margin-bottom: 4px; }
+.card p { margin: 0; font-size: 13px; color: var(--muted); }
+.title-hero { display: grid; place-items: center; height: 100%; text-align: center; padding: 30px; }
+.title-hero h2 { font-size: 40px; line-height: 1.15; margin: 0 0 14px; max-width: 760px; }
+.title-hero p { color: var(--muted); max-width: 620px; margin: 0 auto 8px; }
+.toast { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 8px 14px; border-radius: 10px; font-size: 13px; opacity: 0; transition: opacity .3s; z-index: 3; pointer-events: none; max-width: 90%; text-align: center; }
+.toast.on { opacity: .92; }
+.ok { color: var(--ok); font-weight: 700; }
+.warn { color: var(--reach); font-weight: 700; }
+@media (max-width: 980px) { main { grid-template-columns: 1fr; height: auto; } .stage { min-height: 560px; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <span class="brand">Noderunner</span>
+  <span class="tag">a graph path behind every claim · interactive walkthrough</span>
+  <nav class="dots" id="dots" aria-label="Scenes"></nav>
+  <span class="count" id="count"></span>
+</header>
+<main>
+  <section class="story" aria-live="polite">
+    <div class="kicker" id="kicker"></div>
+    <h1 id="title"></h1>
+    <div id="body"></div>
+    <div class="actions">
+      <button class="ghost" id="back" type="button">←</button>
+      <button class="primary" id="go" type="button"></button>
+      <span class="hint">or press →</span>
+    </div>
+  </section>
+  <section class="stage">
+    <div class="canvas" id="canvas">
+      <span class="label" id="glabel"></span>
+      <span class="badge" id="gbadge"></span>
+      <svg class="graph" id="graph" viewBox="0 0 940 440" role="img" aria-label="The repository graph"></svg>
+      <div class="view" id="view"></div>
+      <div class="toast" id="toast"></div>
+    </div>
+    <div class="panel" id="panel"></div>
+  </section>
+</main>
+<script>
+"use strict";
+// Every number on these screens comes from a real run of Noderunner on nestjs/nest @ c215fd9 (October 2026):
+// the triage run, the executor's dry run, and eval/results.md. Nothing here calls a server.
+
+const $ = (id) => document.getElementById(id);
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+const svgNS = "http://www.w3.org/2000/svg";
+
+// ---------- the graph: a faithful slice of repo:nestjs/nest ----------
+const N = {
+  // production files
+  fIo: { x: 20, y: 50, w: 150, label: "io-adapter.ts", sub: "platform-socket.io", kind: "file" },
+  fFa: { x: 20, y: 195, w: 150, label: "fastify-adapter.ts", sub: "platform-fastify", kind: "file" },
+  fGr: { x: 20, y: 270, w: 150, label: "server-grpc.ts", sub: "microservices", kind: "file" },
+  // installs on production paths
+  sio: { x: 225, y: 50, w: 125, label: "socket.io", sub: "4.8.4" },
+  sad: { x: 395, y: 15, w: 140, label: "socket.io-adapter", sub: "2.5.6" },
+  ws: { x: 580, y: 15, w: 150, label: "ws", sub: "8.18.3" },
+  spa: { x: 395, y: 85, w: 140, label: "socket.io-parser", sub: "4.2.6" },
+  fst: { x: 225, y: 195, w: 125, label: "@fastify/static", sub: "10.1.6 · dev" },
+  glob: { x: 395, y: 195, w: 90, label: "glob", sub: "13.0.6 · dev" },
+  mm: { x: 520, y: 195, w: 100, label: "minimatch", sub: "10.2.5 · dev" },
+  be: { x: 655, y: 195, w: 120, label: "brace-expansion", sub: "5.0.5 · dev" },
+  grpc: { x: 225, y: 270, w: 125, label: "@grpc/grpc-js", sub: "1.14.6 · dev" },
+  pl: { x: 395, y: 270, w: 130, label: "@grpc/proto-loader", sub: "0.8.1 · dev" },
+  pb: { x: 570, y: 270, w: 110, label: "protobufjs", sub: "7.6.1 · dev" },
+  // dev-only tree: nothing in production loads it
+  lerna: { x: 225, y: 340, w: 125, label: "lerna", sub: "dev tool", kind: "dev" },
+  tar: { x: 395, y: 340, w: 90, label: "tar", sub: "dev", kind: "dev" },
+  gulp: { x: 225, y: 390, w: 125, label: "gulp-clean", sub: "dev tool", kind: "dev" },
+  braces: { x: 395, y: 390, w: 90, label: "braces", sub: "dev", kind: "dev" },
+  // advisories
+  vWs: { x: 760, y: 15, w: 165, label: "GHSA-96hv · GHSA-58qx", sub: "ws · high, moderate", kind: "vuln" },
+  vSp: { x: 760, y: 85, w: 165, label: "GHSA-2m8v", sub: "socket.io-parser · high", kind: "vuln" },
+  vBe: { x: 805, y: 195, w: 120, label: "7 advisories", sub: "brace-expansion", kind: "vuln" },
+  vPb: { x: 760, y: 270, w: 165, label: "GHSA-f38q · GHSA-j3f2", sub: "protobufjs · moderate", kind: "vuln" },
+  vTar: { x: 560, y: 340, w: 165, label: "12 advisories", sub: "tar · dev-only", kind: "vuln" },
+  vMore: { x: 560, y: 390, w: 165, label: "… 34 more", sub: "dev-only alerts", kind: "vuln" },
+  // memory
+  dec: { x: 760, y: 140, w: 165, label: "Decision: waive", sub: "@sakibalig · 90 days", kind: "dec" },
+  step: { x: 225, y: 125, w: 125, label: "Step 3", sub: "reachability", kind: "step" },
+};
+const E = [
+  ["fIo", "sio", "LOADS"], ["sio", "sad", "DEPENDS_ON"], ["sad", "ws", "DEPENDS_ON"], ["sio", "spa", "DEPENDS_ON"],
+  ["fFa", "fst", "LOADS"], ["fst", "glob", ""], ["glob", "mm", ""], ["mm", "be", ""],
+  ["grpc", "pl", ""], ["pl", "pb", ""], ["lerna", "tar", ""], ["gulp", "braces", ""],
+  ["vWs", "ws", "AFFECTS"], ["vSp", "spa", "AFFECTS"], ["vBe", "be", ""], ["vPb", "pb", "AFFECTS"],
+  ["vTar", "tar", ""], ["vMore", "braces", ""],
+  ["fGr", "grpc", "createRequire — missed", "missed"],
+  ["dec", "vWs", "", "memo"],
+  ["step", "sio", "TOUCHED", "touch"], ["step", "fst", "", "touch"],
+];
+const H = 38;
+const center = (n) => ({ x: n.x + n.w / 2, y: n.y + H / 2 });
+
+function edgeId(a, b) { return `e-${a}-${b}`; }
+function drawGraph() {
+  const svg = $("graph");
+  svg.innerHTML = "";
+  for (const [a, b, label, extra] of E) {
+    const A = N[a], B = N[b];
+    const leftToRight = A.x < B.x;
+    const s = leftToRight ? { x: A.x + A.w, y: A.y + H / 2 } : { x: A.x, y: A.y + H / 2 };
+    const t = leftToRight ? { x: B.x, y: B.y + H / 2 } : { x: B.x + B.w, y: B.y + H / 2 };
+    if (a === "dec") { s.x = A.x + A.w; s.y = A.y + H / 2; t.x = B.x + B.w; t.y = B.y + H / 2; }
+    if (a === "step") { s.x = A.x + A.w / 2; s.y = b === "sio" ? A.y : A.y + H; t.x = B.x + B.w / 2; t.y = b === "sio" ? B.y + H : B.y; }
+    const g = document.createElementNS(svgNS, "g");
+    g.setAttribute("class", `edge${extra ? ` ${extra}` : ""}`);
+    g.id = edgeId(a, b);
+    const mx = (s.x + t.x) / 2;
+    const path = document.createElementNS(svgNS, "path");
+    path.setAttribute("d", a === "dec" ? `M${s.x},${s.y} C${s.x + 14},${s.y} ${t.x + 14},${t.y} ${t.x},${t.y}` : a === "step" ? `M${s.x},${s.y} L${t.x},${t.y}` : `M${s.x},${s.y} C${mx},${s.y} ${mx},${t.y} ${t.x},${t.y}`);
+    g.appendChild(path);
+    if (label) {
+      const tx = document.createElementNS(svgNS, "text");
+      tx.setAttribute("x", a === "dec" ? s.x - 22 : mx);
+      tx.setAttribute("y", extra === "missed" ? s.y + 34 : (s.y + t.y) / 2 - 5);
+      tx.setAttribute("text-anchor", "middle");
+      tx.textContent = label;
+      g.appendChild(tx);
+    }
+    svg.appendChild(g);
+  }
+  for (const [id, n] of Object.entries(N)) {
+    const g = document.createElementNS(svgNS, "g");
+    g.setAttribute("class", `node ${n.kind ?? "install"}`);
+    g.id = `n-${id}`;
+    const r = document.createElementNS(svgNS, "rect");
+    r.setAttribute("x", n.x); r.setAttribute("y", n.y); r.setAttribute("width", n.w); r.setAttribute("height", H);
+    g.appendChild(r);
+    const t1 = document.createElementNS(svgNS, "text");
+    t1.setAttribute("x", n.x + 9); t1.setAttribute("y", n.y + 16); t1.textContent = n.label;
+    const t2 = document.createElementNS(svgNS, "text");
+    t2.setAttribute("x", n.x + 9); t2.setAttribute("y", n.y + 30); t2.setAttribute("class", "sub"); t2.textContent = n.sub;
+    g.append(t1, t2);
+    svg.appendChild(g);
+  }
+}
+const node = (id) => document.getElementById(`n-${id}`);
+const edge = (a, b) => document.getElementById(edgeId(a, b));
+const allNodes = () => [...document.querySelectorAll(".node")];
+const allEdges = () => [...document.querySelectorAll(".edge")];
+function cls(el, add, ...names) { if (el) for (const n of names) el.classList.toggle(n, add); }
+function reset() {
+  for (const el of [...allNodes(), ...allEdges()]) el.classList.remove("shown", "dim", "hot", "fixed", "pulse");
+  for (const [id, n] of Object.entries(N)) { const t = node(id)?.querySelectorAll("text")[1]; if (t) t.textContent = n.sub; }
+}
+function show(ids) { for (const id of ids) cls(node(id), true, "shown"); }
+function showEdges(pairs) { for (const [a, b] of pairs) cls(edge(a, b), true, "shown"); }
+const graphIds = ["fIo", "fFa", "fGr", "sio", "sad", "ws", "spa", "fst", "glob", "mm", "be", "grpc", "pl", "pb", "lerna", "tar", "gulp", "braces", "vWs", "vSp", "vBe", "vPb", "vTar", "vMore"];
+const graphEdges = E.filter(([a, , , x]) => !x).map(([a, b]) => [a, b]);
+const paths = {
+  ws: [["fIo", "sio"], ["sio", "sad"], ["sad", "ws"], ["vWs", "ws"]],
+  sp: [["fIo", "sio"], ["sio", "spa"], ["vSp", "spa"]],
+  be: [["fFa", "fst"], ["fst", "glob"], ["glob", "mm"], ["mm", "be"], ["vBe", "be"]],
+};
+function heat(pairs, on = true) {
+  for (const [a, b] of pairs) { cls(edge(a, b), on, "hot"); cls(node(a), on, "hot"); cls(node(b), on, "hot"); }
+}
+function fullGraph() { reset(); show(graphIds); showEdges(graphEdges); }
+function reachableView() {
+  fullGraph();
+  for (const id of ["fGr", "grpc", "pl", "pb", "vPb", "lerna", "tar", "gulp", "braces", "vTar", "vMore"]) cls(node(id), true, "dim");
+  for (const [a, b] of [["grpc", "pl"], ["pl", "pb"], ["vPb", "pb"], ["lerna", "tar"], ["gulp", "braces"], ["vTar", "tar"], ["vMore", "braces"]]) cls(edge(a, b), true, "dim");
+  heat([...paths.ws, ...paths.sp, ...paths.be]);
+}
+
+// ---------- ui helpers ----------
+function toast(text, ms = 2600) { const t = $("toast"); t.textContent = text; t.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("on"), ms); }
+function mode(m, label = "", badge = "") {
+  $("graph").classList.toggle("on", m === "graph");
+  $("view").classList.toggle("on", m === "view");
+  $("glabel").textContent = label; $("gbadge").textContent = badge;
+  $("gbadge").style.display = badge ? "" : "none";
+}
+function panel(html) { $("panel").innerHTML = html; }
+async function countUp(el, to, ms = 900) { const t0 = performance.now(); return new Promise((r) => { const f = (t) => { const k = Math.min(1, (t - t0) / ms); el.textContent = Math.round(to * k).toLocaleString("en-US"); k < 1 ? requestAnimationFrame(f) : r(); }; requestAnimationFrame(f); }); }
+
+// ---------- scenes ----------
+const auditLines = (() => {
+  const rows = [["tar", "critical"], ["form-data", "critical"], ["socket.io-parser", "high"], ["tar", "high"], ["lodash.template", "high"], ["brace-expansion", "high"], ["postcss", "high"], ["ws", "high"], ["http-cache-semantics", "high"], ["braces", "high"], ["diff", "high"], ["undici", "high"], ["qs", "moderate"], ["ws", "moderate"], ["tough-cookie", "moderate"], ["micromatch", "moderate"], ["protobufjs", "moderate"], ["request", "moderate"], ["uuid", "moderate"], ["decode-uri-component", "moderate"], ["undici", "low"], ["diff", "low"], ["@tootallnate/once", "low"]];
+  const out = [];
+  for (let i = 0; i < 2; i += 1) for (const [p, s] of rows) out.push(`<div><span class="sev-${s}">${s.padEnd(9)}</span> ${p.padEnd(22)} fix available via \`npm audit fix\`</div>`);
+  return out.join("");
+})();
+
+const scenes = [
+  {
+    kicker: "Graph Hacks 2026 · Track 1: Agents That Act on Connected Data",
+    title: "Most npm security alerts don't matter. A graph shows which ones do.",
+    body: `<p><b>Noderunner</b> loads a repository into a <b>FalkorDB</b> graph, follows the path from production code to every vulnerable package, plans the cheapest fix, and opens a pull request it has verified first.</p>
+      <p>Every claim it makes comes with the graph path behind it.</p>
+      <p class="note">This is a click-through simulation. Every number is from a real run on <code>nestjs/nest</code> @ <code>c215fd9</code>. Team Noderunner: Shaukat Ali, Sakib Khan.</p>`,
+    actions: ["Start the walkthrough"],
+    enter() {
+      mode("view");
+      $("view").innerHTML = `<div class="title-hero"><div><div class="big">56 → 10</div><h2>alerts that matter, each with its path</h2><p>One repository, one graph, one query — and an agent that has to cite the graph for every sentence it writes.</p></div></div>`;
+      panel("");
+    },
+  },
+  {
+    kicker: "1 · The problem",
+    title: "56 alerts, and nobody can tell which are real",
+    body: `<p><code>npm audit</code> on NestJS reports <b>56 vulnerabilities</b>: 2 critical, 25 high, 24 moderate, 5 low.</p>
+      <p>Research at NDSS 2026 (VulTracer) found that <b>68%</b> of package-level vulnerability impacts in npm are noise: the vulnerable code is never reached.</p>
+      <p>The hard part is knowing <i>which</i> 68%. That's a question about how code connects to packages — a graph question.</p>`,
+    actions: ["Load the repository →"],
+    enter() {
+      mode("view", "$ npm audit");
+      $("view").innerHTML = `<div class="audit"><div class="scroll">${auditLines}</div></div>`;
+      panel(`<div class="stat-row"><div class="stat"><b>56</b><span>alerts</span></div><div class="stat"><b style="color:var(--critical)">2</b><span>critical</span></div><div class="stat"><b style="color:var(--high)">25</b><span>high</span></div><div class="stat"><b style="color:var(--moderate)">24</b><span>moderate</span></div><div class="stat"><b style="color:var(--low)">5</b><span>low</span></div></div>`);
+    },
+  },
+  {
+    kicker: "2 · Ingest",
+    title: "Read the repository — never run it",
+    body: `<p>Ingestion reads the commit's tarball in memory. Nothing is cloned and <b>no repository code is executed</b>.</p>
+      <ul><li>Resolve <code>package-lock.json</code> exactly as Node does, nested copies included</li><li>Parse every import with Babel; sort files into prod, test, script, config</li><li>Look up every installed version in OSV</li><li>Read CODEOWNERS and recent history</li></ul>
+      <p class="note">Everything is written with <code>UNWIND $rows</code> in batches of 500 and <code>MERGE</code>, so a re-run at the same commit changes nothing.</p>`,
+    actions: ["Ingest nestjs/nest"],
+    enter() {
+      mode("view", "noderunner · ingest");
+      $("view").innerHTML = `<div class="urlbox"><div>https://github.com/nestjs/nest</div></div>
+        <ul class="stages" id="stages">${[["fetch", "2,149 source files from the tarball"], ["lockfile", "1,638 installed packages · 1,460 dev · 97 direct"], ["imports", "imports parsed, files classified"], ["advisories", "56 advisories from OSV, linked to the exact copies"], ["people", "CODEOWNERS and the last 200 commits"], ["prune", "graph matches the commit"]].map(([s, d]) => `<li><span class="tick"></span><b>${s}</b><span>${d}</span></li>`).join("")}</ul>`;
+      panel("");
+    },
+    async act() {
+      for (const li of document.querySelectorAll("#stages li")) { await wait(380); li.classList.add("done"); }
+      panel(`<span class="ok">Ingested in about 14 seconds.</span> One FalkorDB graph per repository: <code>repo:nestjs/nest</code>.`);
+    },
+  },
+  {
+    kicker: "3 · The graph",
+    title: "The supply chain, as a graph in FalkorDB",
+    body: `<p>Each repository becomes its own graph. Files <b>LOAD</b> installed packages, installs <b>DEPEND_ON</b> installs, advisories <b>AFFECT</b> specific copies.</p>
+      <p>On the right is a faithful slice of <code>repo:nestjs/nest</code>: three production files, the dependency chains they load, and part of the dev-only tree that build tools pull in.</p>
+      <p class="note">The full graph: 2,149 File · 1,638 Install · 56 Vuln, plus Package, Person, and the agent's memory.</p>`,
+    actions: ["Build the graph"],
+    enter() { mode("graph", "repo:nestjs/nest", "FalkorDB"); reset(); panel(""); },
+    async act() {
+      show(["fIo", "fFa", "fGr"]); toast("(:File) — production source files");
+      await wait(700);
+      show(["sio", "sad", "ws", "spa", "fst", "glob", "mm", "be", "grpc", "pl", "pb", "lerna", "tar", "gulp", "braces"]);
+      toast("(:Install) — every copy npm installed, nested ones too");
+      await wait(700);
+      showEdges(graphEdges.filter(([a]) => !a.startsWith("v")));
+      toast("[:LOADS] and [:DEPENDS_ON], resolved like Node");
+      await wait(800);
+      show(["vWs", "vSp", "vBe", "vPb", "vTar", "vMore"]); showEdges(graphEdges.filter(([a]) => a.startsWith("v")));
+      toast("(:Vuln)-[:AFFECTS]->(:Install) — linked to exact versions");
+      panel(`<div class="stat-row"><div class="stat"><b>2,149</b><span>File</span></div><div class="stat"><b>1,638</b><span>Install</span></div><div class="stat"><b>56</b><span>Vuln</span></div><div class="stat"><b>1</b><span>graph per repository</span></div></div>`);
+    },
+  },
+  {
+    kicker: "4 · One query",
+    title: "56 alerts become 10 — in one Cypher query",
+    body: `<p>For every alert, FalkorDB finds the <b>shortest path</b> (at most 15 hops) from any package a production file loads to the vulnerable copy.</p>
+      <p>A path means <b>import-reachable</b>. No path, and every affected copy is dev, means <b>dev-only</b>.</p>
+      <p class="note">The tier is decided by the graph, never by the language model. Same commit, same answer.</p>`,
+    actions: ["Run the reachability query"],
+    enter() {
+      mode("graph", "repo:nestjs/nest", "FalkorDB"); fullGraph();
+      panel(`<pre class="cypher"><span class="k">MATCH</span> (x:Finding)-[:AT]->(bad:Install)
+<span class="k">MATCH</span> (f:File {kind: "prod"})-[:LOADS]->(entry:Install)
+<span class="k">WITH</span> x, entry, <span class="k">shortestPath</span>((entry)-[:DEPENDS_ON*0..15]->(bad)) <span class="k">AS</span> p
+<span class="k">WHERE</span> p <span class="k">IS NOT NULL</span>
+<span class="k">RETURN</span> x.key, [n <span class="k">IN</span> nodes(p) | n.lock_path] <span class="k">AS</span> chain</pre>
+        <div class="funnel" id="funnel">${[["All alerts", 56, "#cfc9bb"], ["In the production tree", 10, "var(--moderate)"], ["Reachable from your code", 10, "var(--reach)"], ["Still open after the plan", 0, "var(--critical)"]].map(([l, n, c]) => `<div class="row"><span>${l}</span><div class="bar"><i data-w="${(n / 56) * 100}" style="background:${c}"></i></div><b data-n="${n}">–</b></div>`).join("")}</div>`);
+    },
+    async act() {
+      const rows = document.querySelectorAll("#funnel .row");
+      rows[0].querySelector("i").style.width = "100%"; rows[0].querySelector("b").textContent = "56";
+      await wait(500);
+      reachableView();
+      toast("46 alerts have no path from production code: dev-only");
+      for (const i of [1, 2]) { const r = rows[i]; r.querySelector("i").style.width = `${r.querySelector("i").dataset.w}%`; r.querySelector("b").textContent = "10"; await wait(350); }
+      rows[3].querySelector("b").textContent = "?";
+      $("funnel").insertAdjacentHTML("afterend", `<p class="note">Ran in 0.6 s on 1,638 installs. FalkorDB note: <code>shortestPath</code> only works as a projection (in <code>WITH</code>/<code>RETURN</code>), and a minimum length of 0 covers a file that loads the vulnerable package itself. The last row waits for the plan.</p>`);
+    },
+  },
+  {
+    kicker: "5 · Why a graph",
+    title: "No file imports brace-expansion. The graph still finds it.",
+    body: `<p>Seven of NestJS's reachable alerts are in <code>brace-expansion</code> — a package <b>no source file imports</b>.</p>
+      <p>It arrives three hops away: <code>fastify-adapter.ts</code> loads <code>@fastify/static</code>, which depends on <code>glob</code>, which depends on <code>minimatch</code>, which pulls in the vulnerable copy.</p>
+      <p>A text search sees an import of <code>@fastify/static</code>. Only a graph walk sees where it leads.</p>`,
+    actions: ["Walk the path, hop by hop"],
+    enter() {
+      mode("graph", "repo:nestjs/nest", "FalkorDB"); reachableView(); heat([...paths.ws, ...paths.sp, ...paths.be], false);
+      panel(`<div class="chain" id="chain"><span>packages/platform-fastify/adapters/fastify-adapter.ts</span><em>LOADS →</em><span>@fastify/static@10.1.6</span><em>→</em><span>glob@13.0.6</span><em>→</em><span>minimatch@10.2.5</span><em>→</em><span>brace-expansion@5.0.5</span><em>←</em><span>7 advisories</span></div>`);
+    },
+    async act() {
+      const parts = [...document.querySelectorAll("#chain > *")];
+      const hops = [["fFa"], ["fFa", "fst"], ["fst", "glob"], ["glob", "mm"], ["mm", "be"], ["vBe", "be"]];
+      for (let i = 0; i < hops.length; i += 1) {
+        const h = hops[i];
+        if (h.length === 1) cls(node(h[0]), true, "hot"); else heat([h]);
+        for (const el of parts.slice(0, i * 2 + 1)) el.classList.add("on");
+        await wait(520);
+      }
+      for (const el of parts) el.classList.add("on");
+      cls(node("be"), true, "pulse");
+      toast("Production code reaches the vulnerable copy in 3 hops");
+    },
+  },
+  {
+    kicker: "6 · The agent",
+    title: "A gpt-5 agent that has to cite the graph",
+    body: `<p>The agent picks its own tools: list alerts, check reachability, trace who introduced each package, plan upgrades, name reviewers.</p>
+      <p>Every tool call is stored in FalkorDB as a <code>(:Step)</code>, linked with <code>[:TOUCHED]</code> to every node it read.</p>
+      <p>Every sentence in the report must cite a step, like <span class="cite">3</span>. The report is checked against the tool results before anyone sees it.</p>`,
+    actions: ["Run the triage agent", "Click citation 3"],
+    enter() {
+      mode("graph", "repo:nestjs/nest", "FalkorDB"); fullGraph();
+      panel(`<ul class="steps" id="steps">${[
+        ["recall_decisions", "1 decision: 0 in force, 1 stale (ws: worse vulnerability on same install)", 32],
+        ["list_alerts", "56 open findings: 2 critical, 25 high, 24 moderate, 5 low", 61],
+        ["reachability", "56 findings tiered: 10 import-reachable, 0 installed, 46 dev-only", 222],
+        ["recall_decisions", "tiers changed, waivers re-checked", 9],
+        ["introduced_by", "ws comes in through socket.io, socket.io-client", 42],
+        ["introduced_by", "socket.io-parser comes in through socket.io, socket.io-client", 30],
+        ["introduced_by", "brace-expansion comes in through @fastify/static, lerna, …", 67],
+        ["plan_upgrades", "3 upgrades close 10 findings at cost 6", 52],
+        ["owners_for", "reviewers named for 3 upgrades", 40],
+      ].map(([t, s, ms], i) => `<li data-i="${i + 1}"><span class="n">${i + 1}</span><code>${t}</code><span>${s}</span><span class="ms">${ms} ms</span></li>`).join("")}</ul>`);
+      $("steps").insertAdjacentHTML("beforebegin", `<div class="report" id="report"></div>`);
+    },
+    async act(i) {
+      if (i === 0) {
+        for (const li of document.querySelectorAll("#steps li")) { await wait(330); li.classList.add("in"); }
+        show(["step"]); showEdges([["step", "sio"], ["step", "fst"]]);
+        toast("Step 3 is a node in the graph, linked to what it touched");
+        const text = "packages/platform-fastify/adapters/fastify-adapter.ts loads @fastify/static, which reaches brace-expansion via glob → minimatch → brace-expansion. ";
+        const r = $("report");
+        r.innerHTML = `<b>Report</b> <span class="note">· 9 tool calls · citations verified</span><p class="typed" id="typed"></p>`;
+        const tgt = $("typed");
+        for (let k = 0; k < text.length; k += 3) { tgt.textContent = text.slice(0, k + 3); await wait(12); }
+        tgt.insertAdjacentHTML("beforeend", `<button class="cite go" id="c3" type="button">3</button>`);
+        $("c3").addEventListener("click", () => go());
+        return;
+      }
+      $("c3").classList.remove("go");
+      document.querySelector('#steps li[data-i="3"]').classList.add("sel");
+      for (const n of allNodes()) if (n.classList.contains("shown")) cls(n, true, "dim");
+      for (const e of allEdges()) if (e.classList.contains("shown")) cls(e, true, "dim");
+      for (const id of ["fIo", "sio", "sad", "ws", "spa", "fFa", "fst", "glob", "mm", "be", "vWs", "vSp", "vBe", "step"]) cls(node(id), false, "dim");
+      for (const [a, b] of [...paths.ws, ...paths.sp, ...paths.be, ["step", "sio"], ["step", "fst"]]) cls(edge(a, b), false, "dim");
+      heat([...paths.ws, ...paths.sp, ...paths.be]);
+      toast("Citation 3 → the exact paths step 3 found, and its Cypher");
+    },
+  },
+  {
+    kicker: "7 · The plan",
+    title: "The fix is computed, not guessed",
+    body: `<p>The planner chooses upgrades by <b>weighted set cover</b>: a lockfile refresh within existing ranges costs 1, a direct bump 2 (5 if major), an <code>overrides</code> pin 4.</p>
+      <p>It checks real npm registry data for which versions are fixed, then names reviewers from CODEOWNERS and recent commits.</p>`,
+    actions: ["Plan the upgrades"],
+    enter() {
+      mode("graph", "repo:nestjs/nest", "FalkorDB"); reachableView();
+      panel(`<table id="plan"><thead><tr><th>Upgrade</th><th>Kind</th><th>Closes</th><th>Risk</th><th>Cost</th></tr></thead><tbody></tbody></table>`);
+    },
+    async act() {
+      const rows = [
+        ["brace-expansion 1.1.13 → 1.1.21", "refresh (lockfile only)", "7 alerts", "patch", 1, "be"],
+        ["socket.io-parser 4.2.6 → 4.2.7", "refresh (lockfile only)", "1 alert", "patch", 1, "spa"],
+        ["ws 8.18.3 → 8.21.0", "override (workaround)", "2 alerts", "minor", 4, "ws"],
+      ];
+      const tb = document.querySelector("#plan tbody");
+      for (const [u, k, c, r, cost, id] of rows) {
+        await wait(450);
+        tb.insertAdjacentHTML("beforeend", `<tr><td><code>${u}</code></td><td>${k}</td><td>${c}</td><td>${r}</td><td>${cost}</td></tr>`);
+        cls(node(id), true, "pulse");
+      }
+      await wait(300);
+      tb.insertAdjacentHTML("beforeend", `<tr><td colspan="5"><b>3 upgrades close all 10 reachable alerts at total cost 6.</b> Reviewers: <code>@kamilmysliwiec</code> (10 recent commits), <code>@ahmad-mosha</code></td></tr>`);
+    },
+  },
+  {
+    kicker: "8 · Memory",
+    title: "Decisions live in the graph, and go stale visibly",
+    body: `<p>A person can waive an alert. The waiver is a <code>(:Decision)</code> node in the same graph, and the next run recalls it.</p>
+      <p>But it's never kept silently past its reasons. It goes <b>stale</b> when it expires, when the alert becomes reachable, when the advisory changes, or when a worse vulnerability lands on the same installed copy — and the alert is reopened.</p>`,
+    actions: ["Waive the moderate ws alert", "Start the next run"],
+    enter() { mode("graph", "repo:nestjs/nest", "FalkorDB"); reachableView(); panel(""); },
+    async act(i) {
+      if (i === 0) {
+        show(["dec"]); showEdges([["dec", "vWs"]]);
+        panel(`<b>Waived</b> <code>GHSA-58qx-3vcg-4xpx|ws</code> (moderate) by <code>@sakibalig</code>: “Socket.io adapter only runs behind our internal gateway.” Expires in 90 days.`);
+        toast("(:Decision)-[:ABOUT]->(:Finding)");
+        return;
+      }
+      cls(node("dec"), true, "pulse");
+      await wait(500);
+      panel(`<b>recall_decisions</b>: 1 decision — 0 in force, <span class="warn">1 stale</span><br><code>GHSA-58qx-3vcg-4xpx|ws</code>: <b>worse vulnerability on same install</b> — the same <code>ws@8.18.3</code> copy also carries <code>GHSA-96hv</code> (high).<br><span class="note">The alert is reopened, so the plan still covers it: 10 of 10.</span>`);
+      toast("The graph spotted it: same install, a more severe advisory");
+    },
+  },
+  {
+    kicker: "9 · Act — carefully",
+    title: "Verify in a second graph, then open the pull request",
+    body: `<p>Track 1 asks for agents that act. Noderunner opens a pull request — but only after it proves the fix in a <b>separate verification graph</b>.</p>
+      <p>A person approves first. npm regenerates the lockfile with <code>--ignore-scripts</code> in a throwaway folder holding only package manifests: repository code never runs.</p>`,
+    actions: ["Approve & open pull request"],
+    enter() {
+      mode("graph", "verify:01M55…", "second FalkorDB graph"); reachableView();
+      panel(`<ul class="pipeline" id="pipe">
+        <li><b>Approved</b> by <code>@sakibalig</code> — nothing ships without it</li>
+        <li><b>Edit package.json</b> — only the changed value is spliced in<div class="diff"><span class="add">+ "overrides": { "ws": "$ws" }</span></div></li>
+        <li><b>Regenerate the lockfile</b> — <code>npm install --package-lock-only --ignore-scripts</code> + <code>npm update brace-expansion socket.io-parser</code> (4.1 s)</li>
+        <li><b>Re-ingest into <code>verify:&lt;runId&gt;</code> and re-run the tier query</b> (8.2 s)</li>
+        <li><b>Compare</b> — refuse if any new alert would be reachable</li>
+        <li><b>Push to the fork</b> via the Git Data API and open the pull request</li></ul>`);
+    },
+    async act() {
+      const items = document.querySelectorAll("#pipe li");
+      const on = (li) => { li.classList.add("on"); li.scrollIntoView({ block: "nearest", behavior: "smooth" }); };
+      for (let i = 0; i < 3; i += 1) { await wait(550); on(items[i]); }
+      await wait(500); on(items[3]);
+      const fixes = [["be", "5.0.5 → 5.0.12"], ["spa", "4.2.6 → 4.2.7"], ["ws", "8.18.3 → 8.22.0 ($ws)"]];
+      heat([...paths.ws, ...paths.sp, ...paths.be], false);
+      for (const [id, v] of fixes) { await wait(450); cls(node(id), true, "fixed"); node(id).querySelectorAll("text")[1].textContent = v; }
+      for (const id of ["vWs", "vSp", "vBe"]) cls(node(id), true, "dim");
+      await wait(500); on(items[4]);
+      items[4].insertAdjacentHTML("beforeend", `<div class="diff"><span class="add">10 of 10 targeted alerts closed · 0 new alerts · nothing new reachable</span></div>`);
+      await wait(600); on(items[5]);
+      items[5].insertAdjacentHTML("beforeend", `<div class="note">Branch <code>noderunner/plan-…</code> → <code>sakibalig/nest</code>. The description lists the path for every closed alert and the verification result.</div>`);
+      items[5].scrollIntoView({ block: "nearest", behavior: "smooth" });
+      toast("Verified in its own graph before anything was pushed");
+    },
+  },
+  {
+    kicker: "10 · Does the graph help? We measured it",
+    title: "Same model, same goal — with and without the graph",
+    body: `<p>A baseline agent got the same model (gpt-5), the same 15-call limit and report format, the alert list <b>without our tiers</b>, and text search over every source file, <code>package.json</code>, and the lockfile.</p>
+      <p>Three runs each, scored against labelled alerts. The baseline found direct imports — but never the <code>brace-expansion</code> chain.</p>`,
+    actions: ["Show the results", "Show our honest miss"],
+    enter() {
+      mode("view", "eval/results.md");
+      $("view").innerHTML = `<div class="bars" id="bars">
+        <div class="row"><b>Graph agent · recall</b><div class="bar"><i data-w="83" style="background:var(--reach)"></i></div><b>83%</b></div>
+        <div class="row"><span>Baseline (files only) · recall</span><div class="bar"><i data-w="25" style="background:#9a958a"></i></div><b>25%</b></div>
+        <div class="row"><b>Graph agent · precision</b><div class="bar"><i data-w="100" style="background:var(--reach)"></i></div><b>100%</b></div>
+        <div class="row"><span>Baseline · precision</span><div class="bar"><i data-w="100" style="background:#9a958a"></i></div><b>100%</b></div></div>
+        <table style="margin-top:22px"><thead><tr><th>Agent</th><th>Tool calls</th><th>Wall time</th><th>Runs</th></tr></thead>
+        <tbody><tr><td>Graph agent</td><td>9–11</td><td>~51 s</td><td>3 of 3 at 83% recall</td></tr><tr><td>Baseline</td><td>15 (capped every run)</td><td>~85 s</td><td>0–25% recall</td></tr></tbody></table>`;
+      panel(`<span class="note">Precision of the baseline is over the 2 of 3 runs that listed anything. Full method and limits in <code>eval/results.md</code>.</span>`);
+    },
+    async act(i) {
+      if (i === 0) { for (const b of document.querySelectorAll("#bars i")) { b.style.width = `${b.dataset.w}%`; await wait(250); } return; }
+      mode("graph", "repo:nestjs/nest", "FalkorDB"); reachableView();
+      for (const id of ["fGr", "grpc", "pl", "pb", "vPb"]) cls(node(id), false, "dim");
+      for (const [a, b] of [["grpc", "pl"], ["pl", "pb"], ["vPb", "pb"]]) cls(edge(a, b), false, "dim");
+      cls(edge("fGr", "grpc"), true, "shown");
+      cls(node("fGr"), true, "pulse");
+      panel(`<b>Where the graph agent fell short (17%).</b> An independent check, sharing no code with Noderunner, found that <code>server-grpc.ts</code> loads <code>@grpc/grpc-js</code> through <code>createRequire(import.meta.url)('@grpc/grpc-js')</code> — a call our import parser doesn't resolve. So two <code>protobufjs</code> alerts are reachable in practice, and our graph says dev-only. We kept them in the labels instead of hiding them.`);
+      toast("The dashed edge is the one our parser missed");
+    },
+  },
+  {
+    kicker: "11 · FalkorDB",
+    title: "How we used FalkorDB — and what we learned",
+    body: `<p>FalkorDB is the core of Noderunner, not a cache next to it: the tiering, the evidence, the memory, and the verification all happen in the graph.</p>`,
+    actions: ["Show the features", "Show what we learned"],
+    enter() { mode("view", "packages/graph"); $("view").innerHTML = `<div class="cards" id="cards"></div>`; panel(""); },
+    async act(i) {
+      const sets = [
+        [["One graph per repository", "repo:<owner>/<name> — tenant isolation, named by the server, never by a caller."], ["Multi-hop shortestPath", "Reachability for every alert in one query, *0..15 hops, 0.6 s on 1,638 installs."], ["The graph as agent memory", "Run, Step, Plan, Upgrade, Decision nodes beside the code facts; Steps link to what they TOUCHED."], ["A second graph to verify", "verify:<runId> re-tiers the regenerated lockfile, then is dropped."], ["GRAPH.RO_QUERY for the model", "read_only_cypher is the agent's escape hatch, and the database refuses writes."], ["Batched, idempotent writes", "UNWIND $rows in chunks of 500 with MERGE: re-ingesting a commit changes nothing."]],
+        [["Reads time out after 1 s", "…by default in the Docker image, so every call sends its own TIMEOUT."], ["shortestPath is a projection", "Only in WITH/RETURN, not MATCH — and a minimum length of 0 is allowed."], ["A parameter named cypher", "…breaks the Node client, which sends parameters as a CYPHER prefix."], ["Reading a missing graph creates it", "So the catalog checks the graph list first."], ["CREATE INDEX isn't idempotent", "Migrations read db.indexes() first."], ["Writes ignore TIMEOUT", "So batches stay small and check for cancellation between chunks."]],
+      ];
+      const box = $("cards");
+      box.insertAdjacentHTML("beforeend", `<h3 class="span">${i === 0 ? "FalkorDB features we used" : "What we learned about FalkorDB"}</h3>`);
+      for (const [t, d] of sets[i]) { box.insertAdjacentHTML("beforeend", `<div class="card"><b>${t}</b><p>${d}</p></div>`); await wait(40); box.lastElementChild.classList.add("in"); await wait(160); }
+      box.lastElementChild.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    },
+  },
+  {
+    kicker: "12 · Noderunner",
+    title: "A graph path behind every claim",
+    body: `<ul><li><b>The graph decides</b> which alerts matter — one FalkorDB query, 56 → 10</li><li><b>The agent explains</b>, and every sentence cites the step and path behind it</li><li><b>It acts carefully</b> — verified in a second graph before the pull request</li><li><b>It remembers</b> — waivers persist and go stale visibly</li><li><b>It's measured</b> — 83% vs 25% recall against a files-only baseline, misses included</li></ul>
+      <p>Open source, MIT: <a href="https://github.com/sakibalig/noderunner" target="_blank" rel="noopener">github.com/sakibalig/noderunner</a></p>`,
+    actions: ["Start over"],
+    enter() {
+      mode("view", "try it");
+      $("view").innerHTML = `<pre class="cypher"><span class="c"># the whole triage, no API key needed</span>
+pnpm install
+docker compose up -d falkordb
+FALKORDB_URL=redis://localhost:6379 pnpm triage nestjs/nest</pre>
+        <table><tbody>
+        <tr><td><b>Ingest</b></td><td>tarball, lockfile, Babel imports, OSV, CODEOWNERS — no code executed</td></tr>
+        <tr><td><b>Graph</b></td><td>FalkorDB, one graph per repository, shortestPath reachability</td></tr>
+        <tr><td><b>Tools</b></td><td>typed, zod-validated; every call stored as a Step</td></tr>
+        <tr><td><b>Agent</b></td><td>gpt-5 behind a vendor-neutral model port; report checked against tool results</td></tr>
+        <tr><td><b>Executor</b></td><td>package.json edit, npm --ignore-scripts sandbox, verification graph, Git Data API</td></tr>
+        <tr><td><b>Web</b></td><td>Next.js run view with live streaming and a Cytoscape evidence graph</td></tr>
+        </tbody></table>
+        <p class="note" style="margin-top:14px">Team Noderunner — Shaukat Ali, Sakib Khan · Graph Hacks 2026 by WeMakeDevs and FalkorDB · Track 1</p>`;
+      panel("");
+    },
+    act() { show_scene(0); },
+  },
+];
+
+// ---------- engine ----------
+let current = 0;
+let step = 0;
+let busy = false;
+
+function renderDots() {
+  $("dots").innerHTML = scenes.map((_, i) => `<button type="button" aria-label="Scene ${i + 1}" class="${i === current ? "on" : i < current ? "done" : ""}"></button>`).join("");
+  [...$("dots").children].forEach((b, i) => b.addEventListener("click", () => show_scene(i)));
+  $("count").textContent = `${current + 1} / ${scenes.length}`;
+}
+function renderButton() {
+  const s = scenes[current];
+  const b = $("go");
+  if (step < s.actions.length) { b.textContent = s.actions[step]; b.classList.remove("next"); }
+  else { b.textContent = current === scenes.length - 1 ? "Start over" : "Next →"; b.classList.add("next"); }
+  $("back").disabled = current === 0;
+}
+function show_scene(i) {
+  current = Math.max(0, Math.min(scenes.length - 1, i));
+  step = 0;
+  const s = scenes[current];
+  $("kicker").textContent = s.kicker;
+  $("title").textContent = s.title;
+  $("body").innerHTML = s.body;
+  s.enter?.();
+  renderDots();
+  renderButton();
+}
+async function go() {
+  if (busy) return;
+  const s = scenes[current];
+  if (current === scenes.length - 1 && step >= s.actions.length - 1) { show_scene(0); return; }
+  if (step < s.actions.length && s.act) {
+    busy = true; $("go").disabled = true;
+    try { await s.act(step); } finally { busy = false; $("go").disabled = false; }
+    step += 1;
+    renderButton();
+    return;
+  }
+  show_scene(current + 1);
+}
+$("go").addEventListener("click", go);
+$("back").addEventListener("click", () => show_scene(current - 1));
+document.addEventListener("keydown", (e) => {
+  if (e.key === "ArrowRight" || e.key === " " || e.key === "Enter") { e.preventDefault(); go(); }
+  if (e.key === "ArrowLeft") show_scene(current - 1);
+});
+drawGraph();
+show_scene(0);
+</script>
+</body>
+</html>
