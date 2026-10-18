@@ -165,7 +165,144 @@ flowchart LR
 
 The left half is the supply chain, re-stamped on every ingest. The right half is the agent's memory: runs, steps,
 findings, plans, and decisions are never deleted by ingestion, so the next session reads them with the same Cypher.
-The full schema is [contracts/graph/schema.md](contracts/graph/schema.md).
+
+### Graph data model
+
+One FalkorDB graph per repository, named `repo:<owner>/<name>`; a pull request is first verified in a throwaway
+`verify:<runId>` graph. The full schema, with every property and index, is
+[contracts/graph/schema.md](contracts/graph/schema.md).
+
+**Supply chain** (re-stamped with `snapshot_sha` on every ingest)
+
+| Node | Key | Main properties |
+| --- | --- | --- |
+| `Repo` | `url` | `owner`, `name`, `default_branch`, `snapshot_sha`, `ingested_at` |
+| `File` | `path` | `kind` (`prod`, `test`, `script`, `config`), `is_entry` |
+| `Package` | `name` | — |
+| `Install` | `lock_path` | `name`, `version`, `dev`, `optional`: one node per lockfile entry, so nested copies are separate |
+| `Vuln` | `id` | `severity`, `severity_rank`, `aliases`, `ranges`, `fixed`, `modified` |
+| `Person` | `handle` | `name`, `kind` |
+
+| Relationship | From → to | Meaning |
+| --- | --- | --- |
+| `CONTAINS` | `Repo` → `File` | The file exists at the commit |
+| `DECLARES` | `Repo` → `Install` | A direct dependency, with its `range` and `dev` |
+| `IMPORTS` | `File` → `File` / `Package` | A resolved relative import, or a bare import |
+| `LOADS` | `File` → `Install` | The installed copy Node would load for that import |
+| `DEPENDS_ON` | `Install` → `Install` | Resolved from the lockfile the way Node resolves, with `range` and `kind` |
+| `OF` | `Install` → `Package` | The install is a copy of the package |
+| `AFFECTS` | `Vuln` → `Install` | The installed version is inside an affected range |
+| `OWNS`, `CHANGED` | `Person` → `File` | CODEOWNERS, and commits in the last 200 |
+
+**Agent memory and evidence** (never deleted by ingestion)
+
+| Node | Key | Main properties |
+| --- | --- | --- |
+| `Finding` | `key` (`<vulnId>\|<package>`) | `severity`, `tier` (`import-reachable`, `installed`, `dev-only`), `status` (`open`, `planned`, `fixed`, `waived`) |
+| `Run` | `id` | `agent`, `model`, `status`, `report`, `result`, `tokens_in`, `tokens_out` |
+| `Step` | `id` | `seq`, `tool`, `input`, `ok`, `summary`, `cypher`, `ms` |
+| `Plan` | `id` | `total_cost`, `uncovered`, `approved`, `approved_by` |
+| `Upgrade` | `id` | `kind` (`refresh`, `bump`, `override`), `package`, `from`, `to`, `cost` |
+| `Decision` | `id` | `kind` (`waive`, `accept`, `reject`), `reason`, `expires_at`, `tier_at_decision`, `stale_reason` |
+| `PullRequest` | `url` | `number`, `branch`, `targeted`, `closed`, `new_findings` |
+
+| Relationship | From → to | Meaning |
+| --- | --- | --- |
+| `ABOUT`, `AT` | `Finding` → `Vuln`, `Install` | The finding's advisory, and the copies it affects |
+| `HAS_STEP`, `TOUCHED` | `Run` → `Step` → any | Every tool call, and every node it read: the evidence behind a citation |
+| `FOUND` | `Run` → `Finding` | The run listed the finding |
+| `PROPOSED`, `INCLUDES`, `CLOSES` | `Run` → `Plan` → `Upgrade` → `Finding` | The plan and what each upgrade closes |
+| `REVIEW_BY` | `Upgrade` → `Person` | A suggested reviewer, with `why` |
+| `ABOUT`, `MADE_BY`, `SUPERSEDES` | `Decision` → `Finding`, `Person`, `Decision` | A human decision, who made it, and what it replaced |
+| `SHIPPED_AS` | `Plan` → `PullRequest` | The plan was opened as this pull request |
+
+### The Cypher it depends on
+
+Every query is a named, parameterised constant under [packages/graph/src/cypher](packages/graph/src/cypher); no
+value is ever concatenated into a query, and every variable-length pattern is bounded. These are the ones the
+product stands on.
+
+**Reachability, the tier of every alert** (`tier.reachable`, [tools/tier.ts](packages/graph/src/cypher/tools/tier.ts)).
+For each finding, the shortest `DEPENDS_ON` chain from any install a production file loads to an affected install.
+`*0..15` covers a file that loads the vulnerable package itself; FalkorDB only accepts `shortestPath` as a
+projection, in `WITH` or `RETURN`.
+
+```cypher
+MATCH (x:Finding)-[:AT]->(bad:Install)
+WHERE size($keys) = 0 OR x.key IN $keys
+MATCH (f:File {kind: "prod"})-[l:LOADS]->(entry:Install)
+WITH x, bad, entry, f, l ORDER BY f.path
+WITH x, bad, entry, collect({path: f.path, id: id(f), edge: id(l)})[0..3] AS files
+WITH x, files, entry, shortestPath((entry)-[:DEPENDS_ON*0..15]->(bad)) AS p
+WHERE p IS NOT NULL
+WITH x, files, entry.name AS via, entry.lock_path AS start, length(p) AS hops,
+     [n IN nodes(p) | n.lock_path] AS chain, [n IN nodes(p) | id(n)] AS nodeIds,
+     [r IN relationships(p) | id(r)] AS edgeIds
+ORDER BY hops ASC, start ASC
+WITH x, head(collect({files: files, via: via, hops: hops, chain: chain, nodeIds: nodeIds, edgeIds: edgeIds})) AS best
+RETURN x.key AS key, id(x) AS findingId, best.files AS files, best.via AS via, best.hops AS hops,
+       best.chain AS chain, best.nodeIds AS nodeIds, best.edgeIds AS edgeIds
+ORDER BY key LIMIT 5000
+```
+
+Findings with no path are `dev-only` when every affected install is dev, else `installed` (`tier.rest`).
+
+**Who brought it in** (`chain.introduced`, [tools/chain.ts](packages/graph/src/cypher/tools/chain.ts)): the direct
+dependencies whose tree reaches an affected install.
+
+```cypher
+MATCH (:Finding {key: $key})-[:AT]->(bad:Install)
+MATCH (repo:Repo)-[d:DECLARES]->(top:Install)
+WITH repo, d, top, bad, shortestPath((top)-[:DEPENDS_ON*0..15]->(bad)) AS p
+WHERE p IS NOT NULL
+RETURN top.name AS package, d.range AS range, d.dev AS dev, bad.lock_path AS target, length(p) AS hops,
+       [n IN nodes(p) | n.lock_path] AS chain
+ORDER BY hops, package, target LIMIT 50
+```
+
+**Upgrade candidates for the planner** (`plan.chains`, [tools/plan.ts](packages/graph/src/cypher/tools/plan.ts)):
+every route of at most two hops from a direct dependency down to a vulnerable install, which the planner turns into
+refresh, bump, and override candidates and solves as a weighted set cover.
+
+```cypher
+MATCH (x:Finding)-[:AT]->(bad:Install)
+WHERE x.tier IN $tiers AND x.status IN ["open", "planned"]
+MATCH p = (:Repo)-[d:DECLARES]->(top:Install)-[:DEPENDS_ON*0..2]->(bad)
+RETURN x.key AS key, bad.lock_path AS lockPath, top.version AS version, d.range AS range,
+       [n IN nodes(p) WHERE n:Install | n.name] AS path
+ORDER BY key, lockPath, size(path) LIMIT 20000
+```
+
+**Reviewers** (`owners.files`, [tools/owners.ts](packages/graph/src/cypher/tools/owners.ts)): the production files
+whose path reaches a finding an upgrade closes, with their owners and recent authors.
+
+```cypher
+MATCH (:Plan {id: $planId})-[:INCLUDES]->(u:Upgrade)-[:CLOSES]->(:Finding)-[:AT]->(bad:Install)
+MATCH (f:File {kind: "prod"})-[:LOADS]->(entry:Install)
+WITH DISTINCT u, f, entry, bad
+WITH u, f, shortestPath((entry)-[:DEPENDS_ON*0..15]->(bad)) AS p
+WHERE p IS NOT NULL
+WITH DISTINCT u, f
+OPTIONAL MATCH (o:Person)-[:OWNS]->(f)
+WITH u, f, collect(DISTINCT o.handle) AS owners
+OPTIONAL MATCH (c:Person)-[ch:CHANGED]->(f) WHERE ch.last_at >= $since
+RETURN u.id AS upgrade, f.path AS file, owners, collect({handle: c.handle, commits: ch.commits}) AS changed
+ORDER BY upgrade, file LIMIT 2000
+```
+
+**Batched, idempotent ingestion** (`lockfile.depends`, [ingest/lockfile.ts](packages/graph/src/cypher/ingest/lockfile.ts)),
+sent in chunks of 500 rows:
+
+```cypher
+UNWIND $rows AS r
+MATCH (a:Install {lock_path: r.from}), (b:Install {lock_path: r.to})
+MERGE (a)-[e:DEPENDS_ON]->(b)
+SET e.range = r.range, e.kind = r.kind, e.snapshot_sha = $sha
+```
+
+The same `tier.reachable` query runs again on the `verify:<runId>` graph before a pull request opens, and `ship.keys`
+compares the two graphs by finding key. The model's free-form `read_only_cypher` tool runs through
+`GRAPH.RO_QUERY`, so FalkorDB itself refuses any write.
 
 ---
 
@@ -194,22 +331,55 @@ Found in our first spike and while building; each is handled in `packages/graph`
 
 ---
 
-## Quickstart
+## Setup
 
-Needs Node 22 or later, pnpm, and Docker. The command-line triage needs no API key:
+Hosting is local: everything runs on one machine. Needs Node 22 or later, pnpm 10, and Docker.
+
+### 1. The triage from the command line (no API key)
 
 ```bash
+git clone https://github.com/sakibalig/noderunner && cd noderunner
 pnpm install
 docker compose up -d falkordb          # FalkorDB on 6379, its Browser on http://localhost:3000
 FALKORDB_URL=redis://localhost:6379 pnpm triage nestjs/nest
 ```
 
-Any public npm repository with a `package-lock.json` (version 2 or 3) works. Open the FalkorDB Browser and select the
-`repo:nestjs/nest` graph to explore it.
+Any public npm repository with a `package-lock.json` (version 2 or 3) works. Open the FalkorDB Browser at
+http://localhost:3000 and select the `repo:nestjs/nest` graph to explore it.
 
-The agent, the web app, and the pull request need the variables in [.env.example](.env.example) (an OpenAI key, a
-GitHub token, and a worker token); the full local setup is in the
+### 2. The full app: agent, web UI, and pull requests
+
+```bash
+cp .env.example .env
+```
+
+| Variable | Value |
+| --- | --- |
+| `OPENAI_API_KEY` | An OpenAI key with access to `gpt-5` |
+| `GITHUB_TOKEN` | A fine-grained GitHub token: public read; for pull requests, Contents and Pull requests write on your fork only |
+| `PR_TARGET_OWNER` | The GitHub owner of your fork of the repository you triage; pull requests go nowhere else |
+| `WORKER_TOKEN` | Any random string of 32 or more characters (`openssl rand -hex 32`) |
+
+The other defaults in `.env.example` fit a local run. Then:
+
+```bash
+docker compose up -d falkordb
+set -a; . ./.env; set +a
+pnpm --filter @noderunner/worker start      # terminal 1: the worker API on :8787
+pnpm --filter @noderunner/web dev           # terminal 2: the web app on http://localhost:3001
+curl localhost:8787/healthz                 # {"ok":true,"falkordb":true,"model":true}
+```
+
+In the web app: paste a repository URL and ingest it, open the repository, press **Run triage agent**, click a
+citation to light its path in the graph, open an alert to see its path or waive it, approve the plan, and press
+**Open pull request** (needs the fork). Troubleshooting and the demo pre-load are in the
 [runbook](documents/public/runbook/deploy.md).
+
+### 3. The evaluation
+
+```bash
+pnpm eval run --runs 3      # graph agent against a files-only baseline; writes eval/results.md
+```
 
 ---
 
